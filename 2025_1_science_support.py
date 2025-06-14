@@ -11,21 +11,19 @@ MODEL = "gpt-4o"
 def prompt_chemistry():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '화학 반응의 규칙과 에너지 변화' 단원을 지도하는 AI 튜터입니다. "
-        "화학 반응식은 반드시 LaTeX 수식으로 작성하고 '@@@@@'로 감싸세요. 각 수식 앞뒤는 반드시 줄바꿈(\\n\\n)으로 구분하세요. 예: \\\n@@@@@\\n
-\\text{2H}_2 + \\text{O}_2 \\rightarrow \\text{2H}_2\\text{O}\\n@@@@@"
+        "수식은 반드시 LaTeX 형식으로 작성하고 '@@@@@'로 감싸주세요. 수식 앞뒤에는 반드시 빈 줄로 구분해 주세요. 예시:\n\n@@@@@\n\\text{2H}_2 + \\text{O}_2 \\rightarrow \\text{2H}_2\\text{O}\n@@@@@\n\n"
     )
 
 def prompt_physics():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '운동과 에너지' 단원을 지도하는 AI 튜터입니다. "
-        "모든 수식은 반드시 LaTeX 형식으로 작성하고 '@@@@@'로 감싸세요. 각 수식 앞뒤는 반드시 줄바꿈(\\n\\n)으로 구분하세요. 예: \\\n@@@@@\\n
-v = \\frac{d}{t}\\n@@@@@"
+        "모든 수식은 반드시 LaTeX 형식으로 작성하고 '@@@@@'로 감싸주세요. 수식 앞뒤에는 반드시 빈 줄로 구분해 주세요. 예시:\n\n@@@@@\n v = \\frac{d}{t} \n@@@@@\n\n"
     )
 
 def prompt_earth_science():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '기권과 날씨' 단원을 지도하는 AI 튜터입니다. "
-        "수식이 있을 경우 LaTeX 수식으로 작성하고 '@@@@@'로 감싸고, 앞뒤 줄바꿈으로 구분하세요."
+        "수식이 있다면 반드시 '@@@@@'로 감싸주세요. 수식 앞뒤에는 반드시 빈 줄로 구분해 주세요. 예시:\n\n@@@@@\nP = \\frac{F}{A}\n@@@@@\n\n"
     )
 
 def connect_to_db():
@@ -131,13 +129,13 @@ def chatbot_tab(topic):
             st.write(f"**You:** {msg['content']}")
         elif msg["role"] == "assistant":
             content = msg["content"]
-            for line in content.split("\n"):
-                line = line.strip()
-                if line.startswith("@@@@@") and line.endswith("@@@@@"):
-                    formula = line.replace("@@@@@", "").strip()
-                    st.latex(formula)
-                elif line:
-                    st.write(f"**AI:** {line}")
+            parts = re.split(r"@@@@@(.*?)@@@@@", content, flags=re.DOTALL)
+            for i, part in enumerate(parts):
+                if i % 2 == 0:
+                    if part.strip():
+                        st.write(f"**AI:** {part.strip()}")
+                else:
+                    st.latex(part.strip())
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
