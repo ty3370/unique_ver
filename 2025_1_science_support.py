@@ -3,6 +3,7 @@ import pymysql
 import json
 from datetime import datetime
 from openai import OpenAI
+import re
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
@@ -129,7 +130,14 @@ def chatbot_tab(tab_label, topic):
         if msg["role"] == "user":
             st.write(f"**You:** {msg['content']}")
         elif msg["role"] == "assistant":
-            st.markdown(f"**AI:** $${msg['content']}$$") if '\\' in msg['content'] else st.write(f"**AI:** {msg['content']}")
+            content = msg["content"]
+            if "$" in content or "\\" in content:
+                try:
+                    st.markdown(f"**AI:**\n{content}", unsafe_allow_html=True)
+                except:
+                    st.write(f"**AI:** {content}")
+            else:
+                st.write(f"**AI:** {content}")
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
@@ -155,23 +163,20 @@ def chatbot_tab(tab_label, topic):
 
 def page_3():
     st.title("탐구 활동 시작")
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("이전"):
-            st.session_state["step"] = 2
-            st.rerun()
-
     tab_labels = ["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"]
-    with st.container():
-        with st.sidebar:
-            selected_tab = st.radio("탐구 주제", tab_labels)
+    selected_tab = st.selectbox("탐구 주제를 선택하세요", tab_labels, format_func=lambda x: f"🔹 {x}")
 
-        if selected_tab == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
-            chatbot_tab(selected_tab, selected_tab)
-        elif selected_tab == "Ⅲ. 운동과 에너지":
-            chatbot_tab(selected_tab, selected_tab)
-        elif selected_tab == "Ⅱ. 기권과 날씨":
-            chatbot_tab(selected_tab, selected_tab)
+    if selected_tab == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
+        chatbot_tab(selected_tab, selected_tab)
+    elif selected_tab == "Ⅲ. 운동과 에너지":
+        chatbot_tab(selected_tab, selected_tab)
+    elif selected_tab == "Ⅱ. 기권과 날씨":
+        chatbot_tab(selected_tab, selected_tab)
+
+    st.markdown("""<br><hr style='border-top:1px solid #bbb;'>""", unsafe_allow_html=True)
+    if st.button("이전으로 돌아가기"):
+        st.session_state["step"] = 2
+        st.rerun()
 
 if "step" not in st.session_state:
     st.session_state["step"] = 1
