@@ -98,7 +98,7 @@ def chatbot_tab(tab_label, topic):
 
     st.subheader(f"주제: {topic}")
 
-    user_input = st.text_area("입력: ", value=st.session_state[input_key], key=input_key)
+    user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
         messages = st.session_state[chat_key]
         if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
