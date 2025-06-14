@@ -11,8 +11,8 @@ MODEL = "gpt-4o"
 def prompt_chemistry():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '화학 반응의 규칙과 에너지 변화' 단원을 지도하는 AI 튜터입니다. "
-        "화학 반응식은 반드시 LaTeX 수식으로 작성하고 '@@@@@'로 감싸세요. 예: @@@@@\text{CaCO}_3 \rightarrow \text{CaO} + \text{CO}_2@@@@@. "
-        "학생은 화학 반응식, 계수 맞추기, 발열/흡열 반응의 개념을 학습 중입니다. 정답을 알려주기보다는 질문을 통해 유도해주세요."
+        "화학 반응식은 반드시 LaTeX 수식으로 작성하고 '@@@@@'로 감싸세요. 예: @@@@@\\text{2H}_2 + \\text{O}_2 \\rightarrow \\text{2H}_2\\text{O}@@@@@. "
+        "정답을 바로 알려주기보다는 질문을 통해 개념을 유도해주세요."
     )
 
 def prompt_physics():
@@ -116,15 +116,13 @@ def page_2():
             st.session_state["step"] = 3
             st.rerun()
 
-def chatbot_tab(tab_label, topic):
+def chatbot_tab(topic):
     key_prefix = topic.replace(" ", "_")
     chat_key = f"chat_{key_prefix}"
     input_key = f"input_{key_prefix}"
 
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
-
-    st.subheader(f"주제: {topic}")
 
     for msg in st.session_state[chat_key]:
         if msg["role"] == "user":
@@ -164,8 +162,7 @@ def page_3():
     st.title("탐구 활동 시작")
     tab_labels = ["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"]
     selected_tab = st.selectbox("탐구 주제를 선택하세요", tab_labels)
-
-    chatbot_tab(selected_tab, selected_tab)
+    chatbot_tab(selected_tab)
 
     st.markdown("""<br><hr style='border-top:1px solid #bbb;'>""", unsafe_allow_html=True)
     if st.button("이전"):
