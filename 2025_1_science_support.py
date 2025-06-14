@@ -110,6 +110,7 @@ def page_2():
 
         학습 목적으로만 사용해주세요. 
         """)
+    st.image("https://i.imgur.com/a/EKWQmN1.png", use_container_width=True)
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("이전"):
