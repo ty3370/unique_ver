@@ -129,7 +129,7 @@ def chatbot_tab(tab_label, topic):
 
 def page_3():
     st.title("탐구 활동 시작")
-    tab1, tab2, tab3 = st.tabs([""Ⅰ. 화학 반응의 규칙과 에너지 변화", Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"])
+    tab1, tab2, tab3 = st.tabs(["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"])
 
     with tab1:
         chatbot_tab("Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅰ. 화학 반응의 규칙과 에너지 변화")
