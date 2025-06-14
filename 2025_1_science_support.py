@@ -11,22 +11,21 @@ MODEL = "gpt-4o"
 def prompt_chemistry():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '화학 반응의 규칙과 에너지 변화' 단원을 지도하는 AI 튜터입니다. "
-        "화학 반응식은 반드시 LaTeX 수식으로 작성하고 '@@@@@'로 감싸세요. 예: @@@@@\\text{2H}_2 + \\text{O}_2 \\rightarrow \\text{2H}_2\\text{O}@@@@@. "
-        "정답을 바로 알려주기보다는 질문을 통해 개념을 유도해주세요."
+        "화학 반응식은 반드시 LaTeX 수식으로 작성하고 '@@@@@'로 감싸세요. 각 수식 앞뒤는 반드시 줄바꿈(\\n\\n)으로 구분하세요. 예: \\\n@@@@@\\n
+\\text{2H}_2 + \\text{O}_2 \\rightarrow \\text{2H}_2\\text{O}\\n@@@@@"
     )
 
 def prompt_physics():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '운동과 에너지' 단원을 지도하는 AI 튜터입니다. "
-        "모든 수식은 반드시 LaTeX 형식으로 작성하고 '@@@@@'로 감싸세요. 예: @@@@@v = \\frac{d}{t}@@@@@. "
-        "질문을 통해 개념을 유도하고, 직관적인 예시를 사용하세요."
+        "모든 수식은 반드시 LaTeX 형식으로 작성하고 '@@@@@'로 감싸세요. 각 수식 앞뒤는 반드시 줄바꿈(\\n\\n)으로 구분하세요. 예: \\\n@@@@@\\n
+v = \\frac{d}{t}\\n@@@@@"
     )
 
 def prompt_earth_science():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '기권과 날씨' 단원을 지도하는 AI 튜터입니다. "
-        "수식이 있을 경우 LaTeX 수식으로 작성하고 '@@@@@'로 감싸주세요. "
-        "질문을 통해 개념을 유도하고, 실생활과 연관지어 설명해주세요."
+        "수식이 있을 경우 LaTeX 수식으로 작성하고 '@@@@@'로 감싸고, 앞뒤 줄바꿈으로 구분하세요."
     )
 
 def connect_to_db():
@@ -87,7 +86,7 @@ def page_1():
     st.title("학습자 정보 입력")
     st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
-    st.session_state["user_code"] = st.text_input("식별코드", value=st.session_state.get("user_code", ""))
+    st.session_state["user_code"] = st.text_input("식별코드", help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요.", value=st.session_state.get("user_code", ""))
     if st.button("다음"):
         if not all([
             st.session_state["user_number"].strip(),
@@ -124,17 +123,21 @@ def chatbot_tab(topic):
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
 
+    if st.button("⬆️ 맨 위로"):
+        st.experimental_rerun()
+
     for msg in st.session_state[chat_key]:
         if msg["role"] == "user":
             st.write(f"**You:** {msg['content']}")
         elif msg["role"] == "assistant":
             content = msg["content"]
-            parts = re.split(r"@@@@@(.*?)@@@@@", content)
-            for i, part in enumerate(parts):
-                if i % 2 == 0 and part.strip():
-                    st.write(f"**AI:** {part.strip()}")
-                elif i % 2 == 1 and part.strip():
-                    st.latex(part.strip())
+            for line in content.split("\n"):
+                line = line.strip()
+                if line.startswith("@@@@@") and line.endswith("@@@@@"):
+                    formula = line.replace("@@@@@", "").strip()
+                    st.latex(formula)
+                elif line:
+                    st.write(f"**AI:** {line}")
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
@@ -158,12 +161,13 @@ def chatbot_tab(topic):
         save_chat(topic, messages)
         st.rerun()
 
+    st.button("⬇️ 맨 아래로")
+
 def page_3():
     st.title("탐구 활동 시작")
     tab_labels = ["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"]
     selected_tab = st.selectbox("탐구 주제를 선택하세요", tab_labels)
     chatbot_tab(selected_tab)
-
     st.markdown("""<br><hr style='border-top:1px solid #bbb;'>""", unsafe_allow_html=True)
     if st.button("이전"):
         st.session_state["step"] = 2
