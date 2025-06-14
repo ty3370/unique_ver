@@ -117,7 +117,6 @@ def chatbot_tab(tab_label, topic):
         answer = response.choices[0].message.content
         messages.append({"role": "user", "content": user_input})
         messages.append({"role": "assistant", "content": answer})
-        st.session_state[input_key] = ""
         save_chat(topic, messages)
         st.rerun()
 
