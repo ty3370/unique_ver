@@ -84,7 +84,12 @@ def page_1():
     st.title("학습자 정보 입력")
     st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
-    st.session_state["user_code"] = st.text_input("식별코드", help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요.", value=st.session_state.get("user_code", ""))
+    col1, col2 = st.columns([4,1])
+    with col1:
+        st.session_state["user_code"] = st.text_input("식별코드", value=st.session_state.get("user_code", ""))
+    with col2:
+        st.markdown("\n")
+        st.info("타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요.")
     if st.button("다음"):
         if not all([
             st.session_state["user_number"].strip(),
@@ -99,10 +104,10 @@ def page_1():
 def page_2():
     st.title("모든 대화 내용은 저장되며, 교사가 열람할 수 있습니다.")
     st.markdown("""
-    이 시스템은 인공지능을 활용한 과학 개념 학습 도우미입니다. 
-    입력된 모든 대화는 저장되며, 교사가 확인할 수 있습니다. 
+    이 시스템은 인공지능을 활용한 과학 개념 학습 도우미입니다.<br>
+    입력된 모든 대화는 저장되며, 교사가 확인할 수 있습니다.<br>
     학습 목적으로만 사용해주세요.
-    """)
+    """, unsafe_allow_html=True)
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("이전"):
@@ -120,9 +125,6 @@ def chatbot_tab(topic):
 
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
-
-    if st.button("⬆️ 맨 위로"):
-        st.experimental_rerun()
 
     for msg in st.session_state[chat_key]:
         if msg["role"] == "user":
@@ -159,12 +161,11 @@ def chatbot_tab(topic):
         save_chat(topic, messages)
         st.rerun()
 
-    st.button("⬇️ 맨 아래로")
-
 def page_3():
-    st.title("탐구 활동 시작")
+    st.title("단원 학습")
     tab_labels = ["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"]
-    selected_tab = st.selectbox("탐구 주제를 선택하세요", tab_labels)
+    selected_tab = st.selectbox("단원을 선택하세요", tab_labels)
+    st.markdown("**💡 모르는 내용을 물어보거나, 문제를 내달라고 해보세요.**")
     chatbot_tab(selected_tab)
     st.markdown("""<br><hr style='border-top:1px solid #bbb;'>""", unsafe_allow_html=True)
     if st.button("이전"):
