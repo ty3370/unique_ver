@@ -84,12 +84,11 @@ def page_1():
     st.title("학습자 정보 입력")
     st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
-    col1, col2 = st.columns([4,1])
-    with col1:
-        st.session_state["user_code"] = st.text_input("식별코드", value=st.session_state.get("user_code", ""))
-    with col2:
-        st.markdown("\n")
-        st.info("타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요.")
+    st.session_state["user_code"] = st.text_input(
+        "식별코드",
+        value=st.session_state.get("user_code", ""),
+        help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요."
+    )
     if st.button("다음"):
         if not all([
             st.session_state["user_number"].strip(),
