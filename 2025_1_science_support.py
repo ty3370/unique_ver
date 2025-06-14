@@ -271,7 +271,8 @@ def save_chat(topic, chat):
         st.error(f"DB 저장 오류: {e}")
 
 def page_1():
-    st.title("학습자 정보 입력")
+    st.title("2025-1학기 과학 도우미")
+    st.write("학습자 정보를 입력하세요.")
     st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
     st.session_state["user_code"] = st.text_input(
@@ -294,13 +295,15 @@ def page_2():
     st.title("⚠️모든 대화 내용은 저장되며, 교사가 열람할 수 있습니다.")
     st.write(
        """  
-        이 시스템은 보라중 학생들을 위한 AI 과학 학습 도우미입니다.
+        이 시스템은 중3 학생들을 위한 AI 과학 학습 도우미입니다.
 
         입력된 모든 대화는 저장되며, 교사가 확인할 수 있습니다.
 
         학습 목적으로만 사용하시고, 개인적인 정보 등을 작성하지 마세요.
 
         AI의 응답은 부정확할 수 있으므로, 정확한 정보는 선생님께 확인하세요.
+
+        문의 및 피드백: ty3370@snu.ac.kr (민태호 교사)
         """)
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -329,7 +332,7 @@ def chatbot_tab(topic):
             for i, part in enumerate(parts):
                 if i % 2 == 0:
                     if part.strip():
-                        st.write(f"**과학도우미:** {part.strip()}")
+                        st.write(f"**과학 도우미:** {part.strip()}")
                 else:
                     st.latex(part.strip())
 
