@@ -11,25 +11,22 @@ MODEL = "gpt-4o"
 def prompt_chemistry():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '화학 반응의 규칙과 에너지 변화' 단원을 지도하는 AI 튜터입니다. "
-        "답변 중 LaTeX 수식은 반드시 '@@@@@수식@@@@@'로 감싸주세요. 예: @@@@@2H_2 + O_2 \rightarrow 2H_2O@@@@@. "
-        "학생은 화학 반응식, 계수 맞추기, 발열/흡열 반응의 개념을 학습 중입니다. 학생의 수준은 중학생이며, 정답을 알려주기보다는 질문을 통해 유도해주세요. "
-        "개념적 이해 부족, 실수, 오개념을 파악하여 친절하고 쉽게 설명하며, 가능한 경우 구체적인 예시를 활용해 설명하세요."
+        "화학 반응식은 반드시 LaTeX 수식으로 작성하고 '@@@@@'로 감싸세요. 예: @@@@@\text{CaCO}_3 \rightarrow \text{CaO} + \text{CO}_2@@@@@. "
+        "학생은 화학 반응식, 계수 맞추기, 발열/흡열 반응의 개념을 학습 중입니다. 정답을 알려주기보다는 질문을 통해 유도해주세요."
     )
 
 def prompt_physics():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '운동과 에너지' 단원을 지도하는 AI 튜터입니다. "
-        "답변 중 LaTeX 수식은 반드시 '@@@@@수식@@@@@'로 감싸주세요. 예: @@@@@F = ma@@@@@. "
-        "학생은 운동의 개념, 속력/가속도, 에너지 전환 및 보존 법칙에 대해 학습 중입니다. 학생의 이해 수준을 고려해, 직관적이고 단계적인 설명을 해주세요. "
-        "정답을 직접적으로 제시하지 말고 질문을 활용하여 유도하는 방식으로 지도하세요."
+        "모든 수식은 반드시 LaTeX 형식으로 작성하고 '@@@@@'로 감싸세요. 예: @@@@@v = \\frac{d}{t}@@@@@. "
+        "질문을 통해 개념을 유도하고, 직관적인 예시를 사용하세요."
     )
 
 def prompt_earth_science():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '기권과 날씨' 단원을 지도하는 AI 튜터입니다. "
-        "답변 중 LaTeX 수식은 반드시 '@@@@@수식@@@@@'로 감싸주세요. 예: @@@@@P = \rho gh@@@@@. "
-        "학생은 기압, 습도, 구름 생성, 대기 대순환 등의 개념을 공부하고 있습니다. "
-        "질문을 통해 개념을 유도하고, 대화식으로 흥미를 끌며 학습을 도와주세요. 예시는 실생활에 연관지어 설명하면 효과적입니다."
+        "수식이 있을 경우 LaTeX 수식으로 작성하고 '@@@@@'로 감싸주세요. "
+        "질문을 통해 개념을 유도하고, 실생활과 연관지어 설명해주세요."
     )
 
 def connect_to_db():
@@ -135,18 +132,11 @@ def chatbot_tab(tab_label, topic):
         elif msg["role"] == "assistant":
             content = msg["content"]
             parts = re.split(r"@@@@@(.*?)@@@@@", content)
-            rendered = False
             for i, part in enumerate(parts):
-                if i % 2 == 0:
-                    if part.strip():
-                        st.write(f"**AI:** {part.strip()}")
-                        rendered = True
-                else:
-                    if part.strip():
-                        st.latex(part.strip())
-                        rendered = True
-            if not rendered:
-                st.write(f"**AI:** {content}")
+                if i % 2 == 0 and part.strip():
+                    st.write(f"**AI:** {part.strip()}")
+                elif i % 2 == 1 and part.strip():
+                    st.latex(part.strip())
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
@@ -173,16 +163,7 @@ def chatbot_tab(tab_label, topic):
 def page_3():
     st.title("탐구 활동 시작")
     tab_labels = ["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"]
-
-    selected_tab = st.selectbox(
-        "탐구 주제를 선택하세요",
-        tab_labels,
-        format_func=lambda x: x,
-        label_visibility="collapsed",
-        index=0
-    )
-
-    st.markdown(f"<div style='padding:10px; border:2px solid #ccc; border-radius:10px; background:#f9f9f9; margin-bottom:20px'><b>{selected_tab}</b></div>", unsafe_allow_html=True)
+    selected_tab = st.selectbox("탐구 주제를 선택하세요", tab_labels)
 
     chatbot_tab(selected_tab, selected_tab)
 
