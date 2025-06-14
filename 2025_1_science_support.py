@@ -7,12 +7,6 @@ from openai import OpenAI
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
 
-TAB_TOPICS = {
-    "Ⅰ. 화학 반응의 규칙과 에너지 변화": "Ⅰ. 화학 반응의 규칙과 에너지 변화",
-    "Ⅲ. 기권과 날씨": "Ⅲ. 기권과 날씨",
-    "Ⅱ. 운동과 에너지": "Ⅱ. 운동과 에너지"
-}
-
 def prompt_chemistry():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '화학 반응의 규칙과 에너지 변화' 단원을 지도하는 AI 튜터입니다. "
@@ -44,6 +38,29 @@ def connect_to_db():
         autocommit=True
     )
 
+def load_chat(topic):
+    number = st.session_state.get("user_number", "").strip()
+    name = st.session_state.get("user_name", "").strip()
+    code = st.session_state.get("user_code", "").strip()
+    if not all([number, name, code]):
+        return []
+    try:
+        db = connect_to_db()
+        cursor = db.cursor()
+        sql = """
+        SELECT chat FROM qna_unique
+        WHERE number = %s AND name = %s AND code = %s AND topic = %s
+        """
+        cursor.execute(sql, (number, name, code, topic))
+        result = cursor.fetchone()
+        cursor.close()
+        db.close()
+        if result:
+            return json.loads(result[0])
+    except Exception as e:
+        st.error(f"DB 불러오기 오류: {e}")
+    return []
+
 def save_chat(topic, chat):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -71,7 +88,11 @@ def page_1():
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
     st.session_state["user_code"] = st.text_input("식별코드", value=st.session_state.get("user_code", ""))
     if st.button("다음"):
-        if not all([st.session_state["user_number"].strip(), st.session_state["user_name"].strip(), st.session_state["user_code"].strip()]):
+        if not all([
+            st.session_state["user_number"].strip(),
+            st.session_state["user_name"].strip(),
+            st.session_state["user_code"].strip()
+        ]):
             st.error("모든 정보를 입력해주세요.")
         else:
             st.session_state["step"] = 2
@@ -84,9 +105,15 @@ def page_2():
     입력된 모든 대화는 저장되며, 교사가 확인할 수 있습니다. 
     학습 목적으로만 사용해주세요.
     """)
-    if st.button("다음"):
-        st.session_state["step"] = 3
-        st.rerun()
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("이전"):
+            st.session_state["step"] = 1
+            st.rerun()
+    with col2:
+        if st.button("다음"):
+            st.session_state["step"] = 3
+            st.rerun()
 
 def chatbot_tab(tab_label, topic):
     key_prefix = topic.replace(" ", "_")
@@ -94,9 +121,15 @@ def chatbot_tab(tab_label, topic):
     input_key = f"input_{key_prefix}"
 
     if chat_key not in st.session_state:
-        st.session_state[chat_key] = []
+        st.session_state[chat_key] = load_chat(topic)
 
     st.subheader(f"주제: {topic}")
+
+    for msg in st.session_state[chat_key]:
+        if msg["role"] == "user":
+            st.write(f"**You:** {msg['content']}")
+        elif msg["role"] == "assistant":
+            st.markdown(f"**AI:** $${msg['content']}$$") if '\\' in msg['content'] else st.write(f"**AI:** {msg['content']}")
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
@@ -120,22 +153,25 @@ def chatbot_tab(tab_label, topic):
         save_chat(topic, messages)
         st.rerun()
 
-    for msg in st.session_state[chat_key]:
-        if msg["role"] == "user":
-            st.write(f"**You:** {msg['content']}")
-        elif msg["role"] == "assistant":
-            st.write(f"**AI:** {msg['content']}")
-
 def page_3():
     st.title("탐구 활동 시작")
-    tab1, tab2, tab3 = st.tabs(["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"])
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("이전"):
+            st.session_state["step"] = 2
+            st.rerun()
 
-    with tab1:
-        chatbot_tab("Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅰ. 화학 반응의 규칙과 에너지 변화")
-    with tab2:
-        chatbot_tab("Ⅲ. 운동과 에너지", "Ⅲ. 운동과 에너지")
-    with tab3:
-        chatbot_tab("Ⅱ. 기권과 날씨", "Ⅱ. 기권과 날씨")
+    tab_labels = ["Ⅰ. 화학 반응의 규칙과 에너지 변화", "Ⅲ. 운동과 에너지", "Ⅱ. 기권과 날씨"]
+    with st.container():
+        with st.sidebar:
+            selected_tab = st.radio("탐구 주제", tab_labels)
+
+        if selected_tab == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
+            chatbot_tab(selected_tab, selected_tab)
+        elif selected_tab == "Ⅲ. 운동과 에너지":
+            chatbot_tab(selected_tab, selected_tab)
+        elif selected_tab == "Ⅱ. 기권과 날씨":
+            chatbot_tab(selected_tab, selected_tab)
 
 if "step" not in st.session_state:
     st.session_state["step"] = 1
