@@ -9,12 +9,20 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
 
 def clean_inline_latex(text):
-    def replacer(match):
-        latex_code = match.group(1)
-        text_content = re.sub(r"\\text\{(.*?)\}", r"\1", latex_code)
-        text_content = re.sub(r"\\", "", text_content)
-        return text_content
-    return re.sub(r"\(\((.*?)\)\)", replacer, text)
+    text = re.sub(r"\\text\{(.*?)\}", r"\1", text)
+    text = re.sub(r"\\ce\{(.*?)\}", r"\1", text)
+    text = re.sub(r"\\frac\{(.*?)\}\{(.*?)\}", r"\1/\2", text)
+    text = re.sub(r"\\sqrt\{(.*?)\}", r"√\1", text)
+    text = re.sub(r"\\rightarrow", "→", text)
+    text = re.sub(r"\\to", "→", text)
+    text = re.sub(r"\^\{(.*?)\}", r"^\1", text)
+    text = re.sub(r"_\{(.*?)\}", r"_\1", text)
+    text = re.sub(r"\^([0-9])", r"^\1", text)
+    text = re.sub(r"_([0-9])", r"\1", text)
+    text = re.sub(r"\\", "", text)
+    text = re.sub(r"\(\((.*?)\)\)", r"\1", text)
+    text = re.sub(r"\(([^()]*\\[a-z]+[^()]*)\)", lambda m: clean_inline_latex(m.group(1)), text)
+    return text
 
 def prompt_chemistry():
     return (
