@@ -8,6 +8,14 @@ import re
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
 
+def clean_inline_latex(text):
+    def replacer(match):
+        latex_code = match.group(1)
+        text_content = re.sub(r"\\text\{(.*?)\}", r"\1", latex_code)
+        text_content = re.sub(r"\\", "", text_content)
+        return text_content
+    return re.sub(r"\(\((.*?)\)\)", replacer, text)
+
 def prompt_chemistry():
     return (
         "당신은 중학교 3학년 과학 교과 과정 중 '화학 반응의 규칙과 에너지 변화' 단원을 지도하는 AI 튜터입니다."
@@ -319,6 +327,7 @@ def page_2():
             st.session_state["step"] = 3
             st.rerun()
 
+# ✅ 과학 도우미 대화창
 def chatbot_tab(topic):
     key_prefix = topic.replace(" ", "_")
     chat_key = f"chat_{key_prefix}"
@@ -332,6 +341,11 @@ def chatbot_tab(topic):
             st.write(f"**You:** {msg['content']}")
         elif msg["role"] == "assistant":
             content = msg["content"]
+
+            # ✅ 잘못된 LaTeX 제거
+            content = clean_inline_latex(content)
+
+            # ✅ 수식 블록과 텍스트 분리 처리
             parts = re.split(r"@@@@@(.*?)@@@@@", content, flags=re.DOTALL)
             for i, part in enumerate(parts):
                 if i % 2 == 0:
@@ -373,6 +387,7 @@ def page_3():
         st.session_state["step"] = 2
         st.rerun()
 
+# 페이지 라우팅
 if "step" not in st.session_state:
     st.session_state["step"] = 1
 
