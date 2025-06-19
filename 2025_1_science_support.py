@@ -327,7 +327,6 @@ def page_2():
             st.session_state["step"] = 3
             st.rerun()
 
-# ✅ 과학 도우미 대화창
 def chatbot_tab(topic):
     key_prefix = topic.replace(" ", "_")
     chat_key = f"chat_{key_prefix}"
@@ -340,19 +339,15 @@ def chatbot_tab(topic):
         if msg["role"] == "user":
             st.write(f"**You:** {msg['content']}")
         elif msg["role"] == "assistant":
-            content = msg["content"]
-
-            # ✅ 잘못된 LaTeX 제거
-            content = clean_inline_latex(content)
-
-            # ✅ 수식 블록과 텍스트 분리 처리
-            parts = re.split(r"@@@@@(.*?)@@@@@", content, flags=re.DOTALL)
-            for i, part in enumerate(parts):
-                if i % 2 == 0:
-                    if part.strip():
-                        st.write(f"**과학 도우미:** {part.strip()}")
+            original = msg["content"]
+            parts = re.split(r"(@@@@@.*?@@@@@)", original, flags=re.DOTALL)
+            for part in parts:
+                if part.startswith("@@@@@") and part.endswith("@@@@@"):
+                    st.latex(part[5:-5].strip())
                 else:
-                    st.latex(part.strip())
+                    clean_text = clean_inline_latex(part)
+                    if clean_text.strip():
+                        st.write(f"**과학 도우미:** {clean_text.strip()}")
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
