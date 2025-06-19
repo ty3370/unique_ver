@@ -9,6 +9,7 @@ client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
 
 def clean_inline_latex(text):
+    text = re.sub(r",\s*\\text\{(.*?)\}", r" \1", text)
     text = re.sub(r"\\text\{(.*?)\}", r"\1", text)
     text = re.sub(r"\\ce\{(.*?)\}", r"\1", text)
     text = re.sub(r"\\frac\{(.*?)\}\{(.*?)\}", r"\1/\2", text)
