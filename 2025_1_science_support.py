@@ -385,6 +385,10 @@ def page_2():
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("이전"):
+            # 로그인 정보 초기화
+            st.session_state.pop("user_number", None)
+            st.session_state.pop("user_name", None)
+            st.session_state.pop("user_code", None)
             st.session_state["step"] = 1
             st.rerun()
     with col2:
