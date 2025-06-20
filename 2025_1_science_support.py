@@ -383,11 +383,7 @@ def page_2():
         ❗AI의 응답은 부정확할 수 있으므로, 정확한 정보는 선생님께 확인하세요.
         """)
     col1, col2 = st.columns([1, 1])
-#    with col1:
-#        if st.button("이전"):
-#            st.session_state["step"] = 1
-#            st.rerun()
-    with col2:
+    with col1:
         if st.button("다음"):
             st.session_state["step"] = 3
             st.rerun()
