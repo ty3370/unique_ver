@@ -395,9 +395,9 @@ def page_2():
 
 def chatbot_tab(topic):
     key_prefix = topic.replace(" ", "_")
-    
+
     if f"messages_{key_prefix}" not in st.session_state:
-        st.session_state[f"messages_{key_prefix}"] = []
+        st.session_state[f"messages_{key_prefix}"] = load_chat(topic)
     messages = st.session_state[f"messages_{key_prefix}"]
 
     if f"user_input_{key_prefix}" not in st.session_state:
