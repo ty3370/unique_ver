@@ -417,13 +417,30 @@ def chatbot_tab(topic):
                     if clean_text.strip():
                         st.write(f"**과학 도우미:** {clean_text.strip()}")
 
-    # 입력창 (초기값은 항상 빈 문자열, key 없이 상태 관리)
-    user_input = st.text_area("입력: ", value="", label_visibility="visible")
+    # 상태 키
+    input_key = f"user_input_{key_prefix}"
+    loading_key = f"loading_{key_prefix}"
 
-    # 전송 버튼
-    if st.button("전송", key=f"send_{key_prefix}"):
-        if user_input.strip():
-            # 시스템 프롬프트 선택
+    if loading_key not in st.session_state:
+        st.session_state[loading_key] = False
+
+    # 매 대화마다 새 입력창 key 생성 (메시지 수 기준)
+    textarea_key = f"textarea_{key_prefix}_{len(messages)}"
+
+    # 입력창 표시
+    if not st.session_state[loading_key]:
+        user_input = st.text_area("입력: ", value="", label_visibility="visible", key=textarea_key)
+        if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
+            st.session_state[input_key] = user_input
+            st.session_state[loading_key] = True
+            st.rerun()
+    else:
+        st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
+
+    # 답변 생성 및 상태 초기화
+    if st.session_state[loading_key]:
+        user_input = st.session_state.get(input_key, "").strip()
+        if user_input:
             if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
                 system_prompt = prompt_chemistry()
             elif topic == "Ⅲ. 운동과 에너지":
@@ -433,22 +450,22 @@ def chatbot_tab(topic):
             else:
                 system_prompt = "과학 개념을 설명하는 AI입니다."
 
-            # 현재 시각
             timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
 
-            # GPT 응답 생성
             response = client.chat.completions.create(
                 model=MODEL,
                 messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
             )
             answer = response.choices[0].message.content
 
-            # 대화 저장
             messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
             messages.append({"role": "assistant", "content": answer})
             save_chat(topic, messages)
 
-            st.rerun()  # 입력창 초기화 + 새로고침
+        # 입력값 초기화
+        st.session_state.pop(input_key, None)
+        st.session_state[loading_key] = False
+        st.rerun()
 
 def page_3():
     st.title("단원 학습")
