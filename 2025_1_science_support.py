@@ -396,14 +396,13 @@ def page_2():
 def chatbot_tab(topic):
     key_prefix = topic.replace(" ", "_")
     chat_key = f"chat_{key_prefix}"
-    input_key = f"input_{key_prefix}"
 
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
 
     messages = st.session_state[chat_key]
 
-    # 메시지 출력
+    # 이전 메시지 출력
     for msg in messages:
         if msg["role"] == "user":
             timestamp = f" [{msg['timestamp']}]" if "timestamp" in msg else ""
@@ -419,13 +418,13 @@ def chatbot_tab(topic):
                     if clean_text.strip():
                         st.write(f"**과학 도우미:** {clean_text.strip()}")
 
-    # 입력창 (value 지정으로 상태 유지)
-    user_input = st.text_area("입력: ", value=st.session_state.get(input_key, ""), key=input_key)
+    # 입력창 (초기값은 항상 빈 문자열, key 없이 상태 관리)
+    user_input = st.text_area("입력: ", value="", label_visibility="visible")
 
     # 전송 버튼
     if st.button("전송", key=f"send_{key_prefix}"):
         if user_input.strip():
-            # 프롬프트 선택
+            # 시스템 프롬프트 선택
             if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
                 system_prompt = prompt_chemistry()
             elif topic == "Ⅲ. 운동과 에너지":
@@ -435,7 +434,7 @@ def chatbot_tab(topic):
             else:
                 system_prompt = "과학 개념을 설명하는 AI입니다."
 
-            # 현재 시간
+            # 현재 시각
             timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
 
             # GPT 응답 생성
@@ -445,14 +444,12 @@ def chatbot_tab(topic):
             )
             answer = response.choices[0].message.content
 
-            # 메시지 저장
+            # 대화 저장
             messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
             messages.append({"role": "assistant", "content": answer})
             save_chat(topic, messages)
 
-            # 입력창 비우기
-            st.session_state[input_key] = ""
-            st.rerun()
+            st.rerun()  # 입력창 초기화 + 새로고침
 
 def page_3():
     st.title("단원 학습")
