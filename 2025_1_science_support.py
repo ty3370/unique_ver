@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from openai import OpenAI
 import re
+from zoneinfo import ZoneInfo
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
@@ -431,9 +432,13 @@ def chatbot_tab(topic):
             messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}]
         )
         answer = response.choices[0].message.content
-        messages.append({"role": "user", "content": user_input})
-        messages.append({"role": "assistant", "content": answer})
+        now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+        st.markdown(f"<div style='color: gray; font-size: 0.8em;'>{now}</div>", unsafe_allow_html=True)
+        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+        messages.append({"role": "user", "content": f"{user_input}\n\n*{timestamp}*"})
+        messages.append({"role": "assistant", "content": f"{answer}\n\n*{timestamp}*"})
         save_chat(topic, messages)
+        st.session_state[input_key] = ""
         st.rerun()
 
 def page_3():
