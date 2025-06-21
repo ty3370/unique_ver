@@ -404,10 +404,12 @@ def chatbot_tab(topic):
     messages = st.session_state[chat_key]
     for msg in messages:
         if msg["role"] == "user":
-            lines = msg["content"].rsplit("\n\n*", 1)
-            st.write(f"**You:** {lines[0]}")
-            if len(lines) > 1:
-                st.markdown(f"<div style='color: gray; font-size: 0.8em;'>{lines[1].strip('*')}</div>", unsafe_allow_html=True)
+            st.write(f"**You:** {msg['content']}")
+            if "timestamp" in msg:
+                st.markdown(
+                    f"<div style='color: gray; font-size: 0.8em;'>{msg['timestamp']}</div>",
+                    unsafe_allow_html=True
+                )
         elif msg["role"] == "assistant":
             original = msg["content"]
             parts = re.split(r"(@@@@@.*?@@@@@)", original, flags=re.DOTALL)
@@ -434,11 +436,11 @@ def chatbot_tab(topic):
             timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
             response = client.chat.completions.create(
                 model=MODEL,
-                messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}]
+                messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
             )
             answer = response.choices[0].message.content
-            messages.append({"role": "user", "content": f"{user_input}\n\n*{timestamp}*"})
-            messages.append({"role": "assistant", "content": f"{answer}"})
+            messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
+            messages.append({"role": "assistant", "content": answer})
             save_chat(topic, messages)
             st.session_state.pop(input_key, None)
             st.rerun()
