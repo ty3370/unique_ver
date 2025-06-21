@@ -402,7 +402,7 @@ def chatbot_tab(topic):
 
     messages = st.session_state[chat_key]
 
-    # 메시지 출력
+    # 이전 메시지 출력
     for msg in messages:
         if msg["role"] == "user":
             st.write(f"**You:** {msg['content']}")
@@ -417,29 +417,29 @@ def chatbot_tab(topic):
                     if clean_text.strip():
                         st.write(f"**과학 도우미:** {clean_text.strip()}")
 
-    # 상태 변수 키
+    # 상태 키
     input_key = f"user_input_{key_prefix}"
     loading_key = f"loading_{key_prefix}"
-    textarea_key = f"textarea_{key_prefix}_{'input' if not st.session_state.get(loading_key, False) else 'wait'}"
 
-    # 초기화
     if loading_key not in st.session_state:
         st.session_state[loading_key] = False
-    if input_key not in st.session_state:
-        st.session_state[input_key] = ""
 
-    # 입력창과 전송 버튼
+    # 매 대화마다 새 입력창 key 생성 (메시지 수 기준)
+    textarea_key = f"textarea_{key_prefix}_{len(messages)}"
+
+    # 입력창 표시
     if not st.session_state[loading_key]:
-        st.session_state[input_key] = st.text_area("입력: ", value="", label_visibility="visible", key=textarea_key)
-        if st.button("전송", key=f"send_{key_prefix}") and st.session_state[input_key].strip():
+        user_input = st.text_area("입력: ", value="", label_visibility="visible", key=textarea_key)
+        if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
+            st.session_state[input_key] = user_input
             st.session_state[loading_key] = True
             st.rerun()
     else:
-        st.write("✏️ 과학 도우미가 답변을 생성 중입니다...")
+        st.write("   ✏️ 과학 도우미가 답변을 생성 중입니다...")
 
-    # GPT 처리 및 상태 초기화
+    # 답변 생성 및 상태 초기화
     if st.session_state[loading_key]:
-        user_input = st.session_state[input_key].strip()
+        user_input = st.session_state.get(input_key, "").strip()
         if user_input:
             if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
                 system_prompt = prompt_chemistry()
@@ -462,7 +462,7 @@ def chatbot_tab(topic):
             messages.append({"role": "assistant", "content": answer})
             save_chat(topic, messages)
 
-        # 상태 초기화
+        # 입력값 초기화
         st.session_state.pop(input_key, None)
         st.session_state[loading_key] = False
         st.rerun()
