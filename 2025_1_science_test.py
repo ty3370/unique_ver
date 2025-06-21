@@ -435,7 +435,7 @@ def chatbot_tab(topic):
             st.session_state[loading_key] = True
             st.rerun()
     else:
-        st.write("*✏️ 과학 도우미가 답변을 생성 중입니다...*")
+        st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
 
     # 답변 생성 및 상태 초기화
     if st.session_state[loading_key]:
