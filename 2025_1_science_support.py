@@ -401,9 +401,13 @@ def chatbot_tab(topic):
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
 
-    for msg in st.session_state[chat_key]:
+    messages = st.session_state[chat_key]
+    for msg in messages:
         if msg["role"] == "user":
-            st.write(f"**You:** {msg['content']}")
+            lines = msg["content"].rsplit("\n\n*", 1)
+            st.write(f"**You:** {lines[0]}")
+            if len(lines) > 1:
+                st.markdown(f"<div style='color: gray; font-size: 0.8em;'>{lines[1].strip('*')}</div>", unsafe_allow_html=True)
         elif msg["role"] == "assistant":
             original = msg["content"]
             parts = re.split(r"(@@@@@.*?@@@@@)", original, flags=re.DOTALL)
@@ -417,29 +421,27 @@ def chatbot_tab(topic):
 
     user_input = st.text_area("입력: ", key=input_key)
     if st.button("전송", key=f"send_{key_prefix}"):
-        messages = st.session_state[chat_key]
-        if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
-            system_prompt = prompt_chemistry()
-        elif topic == "Ⅲ. 운동과 에너지":
-            system_prompt = prompt_physics()
-        elif topic == "Ⅱ. 기권과 날씨":
-            system_prompt = prompt_earth_science()
-        else:
-            system_prompt = "과학 개념을 설명하는 AI입니다."
+        if user_input.strip():
+            if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
+                system_prompt = prompt_chemistry()
+            elif topic == "Ⅲ. 운동과 에너지":
+                system_prompt = prompt_physics()
+            elif topic == "Ⅱ. 기권과 날씨":
+                system_prompt = prompt_earth_science()
+            else:
+                system_prompt = "과학 개념을 설명하는 AI입니다."
 
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}]
-        )
-        answer = response.choices[0].message.content
-        now = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
-        st.markdown(f"<div style='color: gray; font-size: 0.8em;'>{now}</div>", unsafe_allow_html=True)
-        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
-        messages.append({"role": "user", "content": f"{user_input}\n\n*{timestamp}*"})
-        messages.append({"role": "assistant", "content": f"{answer}\n\n*{timestamp}*"})
-        save_chat(topic, messages)
-        st.session_state[input_key] = ""
-        st.rerun()
+            timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}]
+            )
+            answer = response.choices[0].message.content
+            messages.append({"role": "user", "content": f"{user_input}\n\n*{timestamp}*"})
+            messages.append({"role": "assistant", "content": f"{answer}"})
+            save_chat(topic, messages)
+            st.session_state.pop(input_key, None)
+            st.rerun()
 
 def page_3():
     st.title("단원 학습")
