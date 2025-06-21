@@ -96,6 +96,7 @@ if password == st.secrets["PASSWORD"]:
                 st.write("### 학생의 대화 기록")
                 for message in chat:
                     role_label = "**You:**" if message["role"] == "user" else "**과학탐구 도우미:**"
+                    timestamp = f" ({message['timestamp']})" if "timestamp" in message else ""
                     content = message["content"]
                     parts = re.split(r"(@@@@@.*?@@@@@)", content, flags=re.DOTALL)
 
@@ -105,7 +106,7 @@ if password == st.secrets["PASSWORD"]:
                         else:
                             cleaned = clean_inline_latex(part.strip())
                             if cleaned:
-                                st.write(f"{role_label} {cleaned}" if role_label else cleaned)
+                                st.write(f"{role_label} {cleaned}{timestamp}" if role_label else cleaned)
                                 role_label = ""  # 한 번만 출력
             except json.JSONDecodeError:
                 st.error("대화 기록을 불러오는 데 실패했습니다. JSON 형식이 잘못되었습니다.")
