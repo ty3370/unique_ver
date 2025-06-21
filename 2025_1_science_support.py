@@ -394,69 +394,61 @@ def page_2():
             st.rerun()
 
 def chatbot_tab(topic):
-    import re
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-
     key_prefix = topic.replace(" ", "_")
+    chat_key = f"chat_{key_prefix}"
 
-    if f"messages_{key_prefix}" not in st.session_state:
-        st.session_state[f"messages_{key_prefix}"] = load_chat(topic) or []
-    messages = st.session_state[f"messages_{key_prefix}"]
+    if chat_key not in st.session_state:
+        st.session_state[chat_key] = load_chat(topic)
 
-    if f"user_input_{key_prefix}" not in st.session_state:
-        st.session_state[f"user_input_{key_prefix}"] = ""
-    if f"show_input_{key_prefix}" not in st.session_state:
-        st.session_state[f"show_input_{key_prefix}"] = True
+    messages = st.session_state[chat_key]
 
-    # 대화 출력
+    # 이전 메시지 출력
     for msg in messages:
-        role_label = "**You:**" if msg["role"] == "user" else "**과학탐구 도우미:**"
-        content = msg["content"]
-        parts = re.split(r"(@@@@@.*?@@@@@)", content, flags=re.DOTALL)
+        if msg["role"] == "user":
+            st.write(f"**You:** {msg['content']}")
+        elif msg["role"] == "assistant":
+            original = msg["content"]
+            parts = re.split(r"(@@@@@.*?@@@@@)", original, flags=re.DOTALL)
+            for part in parts:
+                if part.startswith("@@@@@") and part.endswith("@@@@@"):
+                    st.latex(part[5:-5].strip())
+                else:
+                    clean_text = clean_inline_latex(part)
+                    if clean_text.strip():
+                        st.write(f"**과학 도우미:** {clean_text.strip()}")
 
-        for part in parts:
-            if part.startswith("@@@@@") and part.endswith("@@@@@"):
-                st.latex(part[5:-5].strip())
+    # 입력창 (초기값은 항상 빈 문자열, key 없이 상태 관리)
+    user_input = st.text_area("입력: ", value="", label_visibility="visible")
+
+    # 전송 버튼
+    if st.button("전송", key=f"send_{key_prefix}"):
+        if user_input.strip():
+            # 시스템 프롬프트 선택
+            if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
+                system_prompt = prompt_chemistry()
+            elif topic == "Ⅲ. 운동과 에너지":
+                system_prompt = prompt_physics()
+            elif topic == "Ⅱ. 기권과 날씨":
+                system_prompt = prompt_earth_science()
             else:
-                cleaned = clean_inline_latex(part.strip())
-                if cleaned:
-                    st.write(f"{role_label} {cleaned}")
-                    role_label = ""
+                system_prompt = "과학 개념을 설명하는 AI입니다."
 
-    # assistant 응답이 마지막이면 입력창 다시 보이게
-    if messages and messages[-1]["role"] == "assistant":
-        st.session_state[f"show_input_{key_prefix}"] = True
+            # 현재 시각
+            timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
 
-    # 입력창
-    if st.session_state[f"show_input_{key_prefix}"]:
-        st.text_area(
-            "입력:",
-            key=f"user_input_{key_prefix}",
-            label_visibility="visible",
-            height=100
-        )
+            # GPT 응답 생성
+            response = client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
+            )
+            answer = response.choices[0].message.content
 
-        if st.button("전송", key=f"send_{key_prefix}"):
-            user_input = st.session_state[f"user_input_{key_prefix}"].strip()
-            if user_input:
-                timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+            # 대화 저장
+            messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
+            messages.append({"role": "assistant", "content": answer})
+            save_chat(topic, messages)
 
-                system_prompt = topic_system_prompt(topic)
-                response = client.chat.completions.create(
-                    model=MODEL,
-                    messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
-                )
-                answer = response.choices[0].message.content
-
-                messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
-                messages.append({"role": "assistant", "content": answer})
-
-                save_chat(topic, messages)
-
-                st.session_state[f"user_input_{key_prefix}"] = ""
-                st.session_state[f"show_input_{key_prefix}"] = False
-                st.rerun()
+            st.rerun()  # 입력창 초기화 + 새로고침
 
 def page_3():
     st.title("단원 학습")
