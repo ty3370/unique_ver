@@ -402,7 +402,7 @@ def chatbot_tab(topic):
 
     messages = st.session_state[chat_key]
 
-    # 이전 메시지 출력
+    # 메시지 출력
     for msg in messages:
         if msg["role"] == "user":
             st.write(f"**You:** {msg['content']}")
@@ -420,6 +420,7 @@ def chatbot_tab(topic):
     # 상태 변수 키
     input_key = f"user_input_{key_prefix}"
     loading_key = f"loading_{key_prefix}"
+    textarea_key = f"textarea_{key_prefix}_{'input' if not st.session_state.get(loading_key, False) else 'wait'}"
 
     # 초기화
     if loading_key not in st.session_state:
@@ -429,14 +430,14 @@ def chatbot_tab(topic):
 
     # 입력창과 전송 버튼
     if not st.session_state[loading_key]:
-        st.session_state[input_key] = st.text_area("입력: ", value=st.session_state[input_key], label_visibility="visible", key=f"textarea_{key_prefix}")
+        st.session_state[input_key] = st.text_area("입력: ", value="", label_visibility="visible", key=textarea_key)
         if st.button("전송", key=f"send_{key_prefix}") and st.session_state[input_key].strip():
             st.session_state[loading_key] = True
             st.rerun()
     else:
         st.write("✏️ 과학 도우미가 답변을 생성 중입니다...")
 
-    # GPT 처리 및 입력창 초기화
+    # GPT 처리 및 상태 초기화
     if st.session_state[loading_key]:
         user_input = st.session_state[input_key].strip()
         if user_input:
@@ -461,7 +462,7 @@ def chatbot_tab(topic):
             messages.append({"role": "assistant", "content": answer})
             save_chat(topic, messages)
 
-        # 입력창 초기화 및 로딩 종료
+        # 상태 초기화
         st.session_state.pop(input_key, None)
         st.session_state[loading_key] = False
         st.rerun()
