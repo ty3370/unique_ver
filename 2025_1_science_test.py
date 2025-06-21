@@ -430,12 +430,16 @@ def chatbot_tab(topic):
     # 입력창 표시
     if not st.session_state[loading_key]:
         user_input = st.text_area("입력: ", value="", label_visibility="visible", key=textarea_key)
-        if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
+        send_button_key = f"send_{key_prefix}_{len(messages)}"
+        send_clicked = st.button("전송", key=send_button_key)
+
+        if send_clicked and user_input.strip():
             st.session_state[input_key] = user_input
             st.session_state[loading_key] = True
             st.rerun()
     else:
         st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
+
 
     # 답변 생성 및 상태 초기화
     if st.session_state[loading_key]:
