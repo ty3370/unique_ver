@@ -440,33 +440,35 @@ def chatbot_tab(topic):
     else:
         st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
 
-
     # 답변 생성 및 상태 초기화
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
-        if user_input:
-            if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
-                system_prompt = prompt_chemistry()
-            elif topic == "Ⅲ. 운동과 에너지":
-                system_prompt = prompt_physics()
-            elif topic == "Ⅱ. 기권과 날씨":
-                system_prompt = prompt_earth_science()
-            else:
-                system_prompt = "과학 개념을 설명하는 AI입니다."
 
-            timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+        # 응답 생성 전 1프레임: 버튼 사라지게 하고 멈춤
+        if not user_input:
+            st.stop()
 
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
-            )
-            answer = response.choices[0].message.content
+        if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
+            system_prompt = prompt_chemistry()
+        elif topic == "Ⅲ. 운동과 에너지":
+            system_prompt = prompt_physics()
+        elif topic == "Ⅱ. 기권과 날씨":
+            system_prompt = prompt_earth_science()
+        else:
+            system_prompt = "과학 개념을 설명하는 AI입니다."
 
-            messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
-            messages.append({"role": "assistant", "content": answer})
-            save_chat(topic, messages)
+        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
 
-        # 입력값 초기화
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
+        )
+        answer = response.choices[0].message.content
+
+        messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
+        messages.append({"role": "assistant", "content": answer})
+        save_chat(topic, messages)
+
         st.session_state.pop(input_key, None)
         st.session_state[loading_key] = False
         st.rerun()
