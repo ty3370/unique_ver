@@ -394,10 +394,14 @@ def page_2():
             st.rerun()
 
 def chatbot_tab(topic):
+    import re
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
     key_prefix = topic.replace(" ", "_")
 
     if f"messages_{key_prefix}" not in st.session_state:
-        st.session_state[f"messages_{key_prefix}"] = load_chat(topic)
+        st.session_state[f"messages_{key_prefix}"] = load_chat(topic) or []
     messages = st.session_state[f"messages_{key_prefix}"]
 
     if f"user_input_{key_prefix}" not in st.session_state:
@@ -405,17 +409,26 @@ def chatbot_tab(topic):
     if f"show_input_{key_prefix}" not in st.session_state:
         st.session_state[f"show_input_{key_prefix}"] = True
 
-    # 1. 이전 메시지 출력
+    # 대화 출력
     for msg in messages:
         role_label = "**You:**" if msg["role"] == "user" else "**과학탐구 도우미:**"
         content = msg["content"]
-        st.write(f"{role_label} {content}")
+        parts = re.split(r"(@@@@@.*?@@@@@)", content, flags=re.DOTALL)
 
-    # 2. 마지막 메시지가 assistant면 입력창 다시 보여줌
+        for part in parts:
+            if part.startswith("@@@@@") and part.endswith("@@@@@"):
+                st.latex(part[5:-5].strip())
+            else:
+                cleaned = clean_inline_latex(part.strip())
+                if cleaned:
+                    st.write(f"{role_label} {cleaned}")
+                    role_label = ""
+
+    # assistant 응답이 마지막이면 입력창 다시 보이게
     if messages and messages[-1]["role"] == "assistant":
         st.session_state[f"show_input_{key_prefix}"] = True
 
-    # 3. 입력창 (조건부 렌더링)
+    # 입력창
     if st.session_state[f"show_input_{key_prefix}"]:
         st.text_area(
             "입력:",
@@ -441,7 +454,6 @@ def chatbot_tab(topic):
 
                 save_chat(topic, messages)
 
-                # 입력창 숨기고 초기화한 뒤 리렌더링
                 st.session_state[f"user_input_{key_prefix}"] = ""
                 st.session_state[f"show_input_{key_prefix}"] = False
                 st.rerun()
