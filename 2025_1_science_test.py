@@ -445,9 +445,9 @@ def chatbot_tab(topic):
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
 
-        # 응답 생성 전 1프레임: 버튼 사라지게 하고 멈춤
         if not user_input:
-            st.stop()
+            st.session_state[loading_key] = False
+            return
 
         if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
             system_prompt = prompt_chemistry()
