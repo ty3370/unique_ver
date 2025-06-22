@@ -398,14 +398,14 @@ def chatbot_tab(topic):
     chat_key     = f"chat_{key_prefix}"
     input_key    = f"user_input_{key_prefix}"
     loading_key  = f"loading_{key_prefix}"
-    prev_key     = f"prev_{key_prefix}_{len(messages)}"
-    textarea_key = f"textarea_{key_prefix}_{len(messages)}"
-    send_key     = f"send_{key_prefix}_{len(messages)}"
 
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
 
     messages = st.session_state[chat_key]
+    prev_key     = f"prev_{key_prefix}_{len(messages)}"
+    textarea_key = f"textarea_{key_prefix}_{len(messages)}"
+    send_key     = f"send_{key_prefix}_{len(messages)}"
 
     # 이전 메시지 출력
     for msg in messages:
@@ -422,25 +422,17 @@ def chatbot_tab(topic):
                     if clean_text.strip():
                         st.write(f"**과학 도우미:** {clean_text.strip()}")
 
-    # 상태 키
-    input_key = f"user_input_{key_prefix}"
-    loading_key = f"loading_{key_prefix}"
-
     if loading_key not in st.session_state:
         st.session_state[loading_key] = False
 
     placeholder = st.empty()
 
     if not st.session_state[loading_key]:
-        # 이 안에 이전 버튼, 입력창, 전송 버튼을 한 번에 그립니다.
         with placeholder.container():
-            # 원하시면 컬럼 레이아웃으로 배치할 수도 있고...
             cols = st.columns([1, 6, 1])
             with cols[0]:
                 if st.button("이전", key=prev_key):
-                    # 이전 메시지 불러오기 등 원하는 동작
                     st.session_state[loading_key] = True
-                    # (필요하다면) st.session_state[input_key] = ...
                     placeholder.empty()
                     st.rerun()
             with cols[1]:
