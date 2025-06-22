@@ -394,8 +394,13 @@ def page_2():
             st.rerun()
 
 def chatbot_tab(topic):
-    key_prefix = topic.replace(" ", "_")
-    chat_key = f"chat_{key_prefix}"
+    key_prefix   = topic.replace(" ", "_")
+    chat_key     = f"chat_{key_prefix}"
+    input_key    = f"user_input_{key_prefix}"
+    loading_key  = f"loading_{key_prefix}"
+    prev_key     = f"prev_{key_prefix}_{len(messages)}"
+    textarea_key = f"textarea_{key_prefix}_{len(messages)}"
+    send_key     = f"send_{key_prefix}_{len(messages)}"
 
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(topic)
@@ -424,48 +429,36 @@ def chatbot_tab(topic):
     if loading_key not in st.session_state:
         st.session_state[loading_key] = False
 
-    # 매 대화마다 새 입력창 key 생성 (메시지 수 기준)
-    textarea_key = f"textarea_{key_prefix}_{len(messages)}"
-
     placeholder = st.empty()
 
     if not st.session_state[loading_key]:
+        # 이 안에 이전 버튼, 입력창, 전송 버튼을 한 번에 그립니다.
         with placeholder.container():
-            user_input = st.text_area("입력: ", value="", key=f"textarea_{topic}_{len(messages)}")
-            if st.button("전송", key=f"send_{topic}_{len(messages)}") and user_input.strip():
-                st.session_state[loading_key] = True
-                st.session_state[input_key] = user_input
-                placeholder.empty()
-                st.rerun()
+            # 원하시면 컬럼 레이아웃으로 배치할 수도 있고...
+            cols = st.columns([1, 6, 1])
+            with cols[0]:
+                if st.button("이전", key=prev_key):
+                    # 이전 메시지 불러오기 등 원하는 동작
+                    st.session_state[loading_key] = True
+                    # (필요하다면) st.session_state[input_key] = ...
+                    placeholder.empty()
+                    st.rerun()
+            with cols[1]:
+                user_input = st.text_area("입력:", key=textarea_key)
+            with cols[2]:
+                if st.button("전송", key=send_key) and user_input.strip():
+                    st.session_state[loading_key] = True
+                    st.session_state[input_key]    = user_input
+                    placeholder.empty()
+                    st.rerun()
+
     else:
         st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
+        # (st.stop()는 제거)
 
-    # 답변 생성 및 상태 초기화
+    # 로딩 상태에서 실제 응답 생성 로직 실행
     if st.session_state[loading_key]:
-        user_input = st.session_state.get(input_key, "").strip()
-
-        if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
-            system_prompt = prompt_chemistry()
-        elif topic == "Ⅲ. 운동과 에너지":
-            system_prompt = prompt_physics()
-        elif topic == "Ⅱ. 기권과 날씨":
-            system_prompt = prompt_earth_science()
-        else:
-            system_prompt = "과학 개념을 설명하는 AI입니다."
-
-        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
-
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
-        )
-        answer = response.choices[0].message.content
-
-        messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
-        messages.append({"role": "assistant", "content": answer})
-        save_chat(topic, messages)
-
-        st.session_state.pop(input_key, None)
+        # … 생성 코드 …
         st.session_state[loading_key] = False
         st.rerun()
 
