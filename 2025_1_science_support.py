@@ -427,42 +427,44 @@ def chatbot_tab(topic):
     # 매 대화마다 새 입력창 key 생성 (메시지 수 기준)
     textarea_key = f"textarea_{key_prefix}_{len(messages)}"
 
-    # 입력창 표시
+    placeholder = st.empty()
+
     if not st.session_state[loading_key]:
-        user_input = st.text_area("입력: ", value="", label_visibility="visible", key=textarea_key)
-        if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
-            st.session_state[input_key] = user_input
-            st.session_state[loading_key] = True
-            st.rerun()
+        with placeholder.container():
+            user_input = st.text_area("입력: ", value="", key=f"textarea_{topic}_{len(messages)}")
+            if st.button("전송", key=f"send_{topic}_{len(messages)}") and user_input.strip():
+                st.session_state[loading_key] = True
+                st.session_state[input_key] = user_input
+                placeholder.empty()
+                st.rerun()
     else:
         st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
 
     # 답변 생성 및 상태 초기화
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
-        if user_input:
-            if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
-                system_prompt = prompt_chemistry()
-            elif topic == "Ⅲ. 운동과 에너지":
-                system_prompt = prompt_physics()
-            elif topic == "Ⅱ. 기권과 날씨":
-                system_prompt = prompt_earth_science()
-            else:
-                system_prompt = "과학 개념을 설명하는 AI입니다."
 
-            timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+        if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
+            system_prompt = prompt_chemistry()
+        elif topic == "Ⅲ. 운동과 에너지":
+            system_prompt = prompt_physics()
+        elif topic == "Ⅱ. 기권과 날씨":
+            system_prompt = prompt_earth_science()
+        else:
+            system_prompt = "과학 개념을 설명하는 AI입니다."
 
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
-            )
-            answer = response.choices[0].message.content
+        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
 
-            messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
-            messages.append({"role": "assistant", "content": answer})
-            save_chat(topic, messages)
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
+        )
+        answer = response.choices[0].message.content
 
-        # 입력값 초기화
+        messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
+        messages.append({"role": "assistant", "content": answer})
+        save_chat(topic, messages)
+
         st.session_state.pop(input_key, None)
         st.session_state[loading_key] = False
         st.rerun()
@@ -473,10 +475,6 @@ def page_3():
     selected_tab = st.selectbox("단원을 선택하세요", tab_labels)
     st.markdown("**💡 모르는 내용을 물어보거나, 문제를 내달라고 해보세요.**")
     chatbot_tab(selected_tab)
-    st.markdown("""<br><hr style='border-top:1px solid #bbb;'>""", unsafe_allow_html=True)
-    if st.button("이전"):
-        st.session_state["step"] = 2
-        st.rerun()
 
 # 페이지 라우팅
 if "step" not in st.session_state:
