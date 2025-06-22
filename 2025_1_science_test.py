@@ -445,10 +445,6 @@ def chatbot_tab(topic):
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
 
-        if not user_input:
-            st.session_state[loading_key] = False
-            return
-
         if topic == "Ⅰ. 화학 반응의 규칙과 에너지 변화":
             system_prompt = prompt_chemistry()
         elif topic == "Ⅲ. 운동과 에너지":
