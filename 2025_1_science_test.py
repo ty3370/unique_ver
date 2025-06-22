@@ -475,11 +475,6 @@ def page_3():
     selected_tab = st.selectbox("단원을 선택하세요", tab_labels)
     st.markdown("**💡 모르는 내용을 물어보거나, 문제를 내달라고 해보세요.**")
     chatbot_tab(selected_tab)
-    st.markdown("""<br><hr style='border-top:1px solid #bbb;'>""", unsafe_allow_html=True)
-    loading_key = f"loading_{selected_tab.replace(' ', '_')}"
-    if not st.session_state.get(loading_key, False) and st.button("이전"):
-        st.session_state["step"] = 2
-        st.rerun()
 
 # 페이지 라우팅
 if "step" not in st.session_state:
