@@ -45,7 +45,7 @@ def fetch_students_by_topic(topic):
         db = connect_to_db()
         cursor = db.cursor()
         query = """
-        SELECT number, name, code, MAX(updated_at) as last_chat
+        SELECT number, name, code, MAX(time) as last_chat
         FROM qna_unique
         WHERE topic = %s
         GROUP BY number, name, code
