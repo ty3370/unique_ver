@@ -144,27 +144,7 @@ if password == st.secrets["PASSWORD"]:
             # DataFrame 변환
             df = pd.DataFrame(chat_table)
 
-            # 줄바꿈 가능한 표 스타일 적용
-            st.markdown(
-                """
-                <style>
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                th, td {
-                    text-align: left;
-                    vertical-align: top;
-                    white-space: pre-wrap;
-                    word-break: break-word;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True
-            )
-
-            # HTML 테이블로 렌더링
-            st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+            st.dataframe(df)
 
         except json.JSONDecodeError:
             st.error("대화 기록을 불러오는 데 실패했습니다.")
