@@ -156,7 +156,10 @@ if password == st.secrets["PASSWORD"]:
                 """
                 <script type="text/javascript">
                 MathJax = {
-                  tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] },
+                  tex: {
+                    inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                    displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
+                  },
                   svg: { fontCache: 'global' }
                 };
                 </script>
