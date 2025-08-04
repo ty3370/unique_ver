@@ -221,7 +221,10 @@ def chatbot_tab(subject, unit, subunit, topic):
                 else:
                     clean_text = clean_inline_latex(part)
                     if clean_text.strip():
-                        st.write(f"**과학 도우미:** {clean_text.strip()}")
+                        if clean_text.startswith("http") and (".png" in clean_text or ".jpg" in clean_text or "imgur.com" in clean_text):
+                            st.image(clean_text)
+                        else:
+                            st.write(f"**과학 도우미:** {clean_text.strip()}")
 
     input_key = f"user_input_{key_prefix}"
     loading_key = f"loading_{key_prefix}"
