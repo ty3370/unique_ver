@@ -147,8 +147,6 @@ if password == st.secrets["PASSWORD"]:
             # HTML 테이블로 출력 (복사 가능)
             st.markdown(df.to_html(index=False), unsafe_allow_html=True)
 
-            st.dataframe(df)
-
         except json.JSONDecodeError:
             st.error("대화 기록을 불러오는 데 실패했습니다.")
     else:
