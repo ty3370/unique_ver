@@ -110,7 +110,15 @@ if password == st.secrets["PASSWORD"]:
     # ===== 대화 내용에서 LaTeX 변환 함수 =====
     def convert_latex_for_html(text):
         # @@@@@ ... @@@@@ -> $$ ... $$ 변환
-        return re.sub(r"@@@@@(.*?)@@@@@", r"$$\1$$", text, flags=re.DOTALL)
+        latex_text = re.sub(r"@@@@@(.*?)@@@@@", r"$$\1$$", text, flags=re.DOTALL)
+        # $$ 내부의 줄바꿈 제거
+        latex_text = re.sub(
+            r"\$\$(.*?)\$\$",
+            lambda m: "$$" + m.group(1).replace("\n", " ") + "$$",
+            latex_text,
+            flags=re.DOTALL
+        )
+        return latex_text
 
     # 4. 대화 불러오기
     chat_data = fetch_chat(number, name, code, topic)
