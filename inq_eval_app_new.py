@@ -2,6 +2,7 @@ import streamlit as st
 import pymysql
 import json
 import re
+import pandas as pd
 
 # 환경 변수
 OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
@@ -107,20 +108,39 @@ if password == st.secrets["PASSWORD"]:
     if chat_data:
         try:
             chat = json.loads(chat_data)
-            st.write("### 학생의 대화 기록")
+            st.write("### 학생의 대화 기록 (표 형식)")
+
+            # 표 데이터를 담을 리스트
+            chat_table = []
+
             for message in chat:
-                role_label = "**You:**" if message["role"] == "user" else "**과학탐구 도우미:**"
-                timestamp = f" ({message['timestamp']})" if "timestamp" in message else ""
+                role_label = "You" if message["role"] == "user" else "과학탐구 도우미"
+                timestamp = message.get("timestamp", "")
                 content = message["content"]
+
+                # LaTeX 구문 처리
                 parts = re.split(r"(@@@@@.*?@@@@@)", content, flags=re.DOTALL)
+                cleaned_parts = []
                 for part in parts:
                     if part.startswith("@@@@@") and part.endswith("@@@@@"):
-                        st.latex(part[5:-5].strip())
+                        cleaned_parts.append(part[5:-5].strip())  # LaTeX 내용 그대로
                     else:
-                        cleaned = clean_inline_latex(part.strip())
-                        if cleaned:
-                            st.write(f"{role_label} {cleaned}{timestamp}" if role_label else cleaned)
-                            role_label = ""  # 한 번만 출력
+                        cleaned_text = clean_inline_latex(part.strip())
+                        if cleaned_text:
+                            cleaned_parts.append(cleaned_text)
+
+                cleaned_content = " ".join(cleaned_parts)
+                
+                chat_table.append({
+                    "말한 사람": role_label,
+                    "대화 내용": cleaned_content,
+                    "시간": timestamp
+                })
+
+            # DataFrame으로 변환 후 출력
+            df = pd.DataFrame(chat_table)
+            st.dataframe(df)
+
         except json.JSONDecodeError:
             st.error("대화 기록을 불러오는 데 실패했습니다.")
     else:
