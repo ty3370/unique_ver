@@ -39,15 +39,16 @@ def connect_to_db():
         charset='utf8mb4'
     )
 
-# ===== 단원별 학생 목록 가져오기 =====
+# ===== 단원별 학생 목록 + 마지막 대화 시간 가져오기 =====
 def fetch_students_by_topic(topic):
     try:
         db = connect_to_db()
         cursor = db.cursor()
         query = """
-        SELECT DISTINCT number, name, code
+        SELECT number, name, code, MAX(updated_at) as last_chat
         FROM qna_unique
         WHERE topic = %s
+        GROUP BY number, name, code
         ORDER BY number
         """
         cursor.execute(query, (topic,))
@@ -98,10 +99,13 @@ if password == st.secrets["PASSWORD"]:
         st.warning("해당 단원에 학생 기록이 없습니다.")
         st.stop()
 
-    # 3. 학생 선택
-    student_options = [f"{s[0]} ({s[1]}) / 코드: {s[2]}" for s in students]
+    # 3. 학생 선택 (마지막 대화 시간 표시)
+    student_options = [
+        f"{s[0]} ({s[1]}) / {s[2]} / {s[3] if s[3] else '없음'}"
+        for s in students
+    ]
     selected_student = st.selectbox("학생을 선택하세요:", student_options)
-    number, name, code = students[student_options.index(selected_student)]
+    number, name, code, _ = students[student_options.index(selected_student)]
 
     # 4. 대화 불러오기
     chat_data = fetch_chat(number, name, code, topic)
@@ -137,9 +141,30 @@ if password == st.secrets["PASSWORD"]:
                     "시간": timestamp
                 })
 
-            # DataFrame으로 변환 후 출력
+            # DataFrame 변환
             df = pd.DataFrame(chat_table)
-            st.dataframe(df)
+
+            # 줄바꿈 가능한 표 스타일 적용
+            st.markdown(
+                """
+                <style>
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                th, td {
+                    text-align: left;
+                    vertical-align: top;
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # HTML 테이블로 렌더링
+            st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
 
         except json.JSONDecodeError:
             st.error("대화 기록을 불러오는 데 실패했습니다.")
