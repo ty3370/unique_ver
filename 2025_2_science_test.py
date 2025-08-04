@@ -9,6 +9,28 @@ from zoneinfo import ZoneInfo
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 MODEL = "gpt-4o"
 
+# ===== LaTeX 텍스트 정리 함수 =====
+def clean_inline_latex(text):
+    text = re.sub(r",\s*\\text\{(.*?)\}", r" \1", text)
+    text = re.sub(r"\\text\{(.*?)\}", r"\1", text)
+    text = re.sub(r"\\ce\{(.*?)\}", r"\1", text)
+    text = re.sub(r"\\frac\{(.*?)\}\{(.*?)\}", r"\1/\2", text)
+    text = re.sub(r"\\sqrt\{(.*?)\}", r"√\1", text)
+    text = re.sub(r"\\rightarrow", "→", text)
+    text = re.sub(r"\\to", "→", text)
+    text = re.sub(r"\^\{(.*?)\}", r"^\1", text)
+    text = re.sub(r"_\{(.*?)\}", r"_\1", text)
+    text = re.sub(r"\^([0-9])", r"^\1", text)
+    text = re.sub(r"_([0-9])", r"\1", text)
+    text = re.sub(r"\\", "", text)
+    text = re.sub(r"\(\((.*?)\)\)", r"\1", text)
+    text = re.sub(r"\(([^()]*\\[a-z]+[^()]*)\)", lambda m: clean_inline_latex(m.group(1)), text)
+    text = re.sub(r"\b(times)\b", "×", text)
+    text = re.sub(r"\b(div|divided by)\b", "÷", text)
+    text = re.sub(r"\b(plus)\b", "+", text)
+    text = re.sub(r"\b(minus)\b", "-", text)
+    return text
+
 # ===== 소단원별 초기 프롬프트 =====
 def prompt_Ⅳ_1_01():
     return (
@@ -197,7 +219,9 @@ def chatbot_tab(subject, unit, subunit, topic):
                 if part.startswith("@@@@@") and part.endswith("@@@@@"):
                     st.latex(part[5:-5].strip())
                 else:
-                    st.write(f"**과학 도우미:** {part.strip()}")
+                    clean_text = clean_inline_latex(part)
+                    if clean_text.strip():
+                        st.write(f"**과학 도우미:** {clean_text.strip()}")
 
     input_key = f"user_input_{key_prefix}"
     loading_key = f"loading_{key_prefix}"
@@ -235,7 +259,7 @@ def chatbot_tab(subject, unit, subunit, topic):
 
 # ===== 페이지 =====
 def page_1():
-    st.title("2025-1학기 과학 도우미")
+    st.title("2025-2학기 과학 도우미")
     st.write("학습자 정보를 입력하세요.")
     st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
