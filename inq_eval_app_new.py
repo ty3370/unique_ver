@@ -144,6 +144,9 @@ if password == st.secrets["PASSWORD"]:
             # DataFrame 변환
             df = pd.DataFrame(chat_table)
 
+            # HTML 테이블로 출력 (복사 가능)
+            st.markdown(df.to_html(index=False), unsafe_allow_html=True)
+
             st.dataframe(df)
 
         except json.JSONDecodeError:
