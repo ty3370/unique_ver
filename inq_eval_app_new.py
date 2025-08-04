@@ -107,27 +107,16 @@ if password == st.secrets["PASSWORD"]:
     selected_student = st.selectbox("학생을 선택하세요:", student_options)
     number, name, code, _ = students[student_options.index(selected_student)]
 
-    # ===== 대화 내용에서 LaTeX 변환 함수 =====
-    def convert_latex_for_html(text):
-        # @@@@@ ... @@@@@ -> $$ ... $$ 변환
-        latex_text = re.sub(r"@@@@@(.*?)@@@@@", r"$$\1$$", text, flags=re.DOTALL)
-        # $$ 내부의 줄바꿈 제거
-        latex_text = re.sub(
-            r"\$\$(.*?)\$\$",
-            lambda m: "$$" + m.group(1).replace("\n", " ") + "$$",
-            latex_text,
-            flags=re.DOTALL
-        )
-        return latex_text
-
     # 4. 대화 불러오기
     chat_data = fetch_chat(number, name, code, topic)
     if chat_data:
         try:
             chat = json.loads(chat_data)
-            st.write("### 학생의 대화 기록 (복사 가능 + LaTeX 렌더링)")
+            st.write("### 학생의 대화 기록 (표 형식)")
 
+            # 표 데이터를 담을 리스트
             chat_table = []
+
             for message in chat:
                 role_label = "You" if message["role"] == "user" else "과학탐구 도우미"
                 timestamp = message.get("timestamp", "")
@@ -138,45 +127,41 @@ if password == st.secrets["PASSWORD"]:
                 cleaned_parts = []
                 for part in parts:
                     if part.startswith("@@@@@") and part.endswith("@@@@@"):
-                        cleaned_parts.append(part)  # 변환은 나중에
+                        cleaned_parts.append(part[5:-5].strip())  # LaTeX 내용 그대로
                     else:
                         cleaned_text = clean_inline_latex(part.strip())
                         if cleaned_text:
                             cleaned_parts.append(cleaned_text)
 
                 cleaned_content = " ".join(cleaned_parts)
-                # HTML용 LaTeX 변환
-                cleaned_content = convert_latex_for_html(cleaned_content)
-
+                
                 chat_table.append({
                     "말한 사람": role_label,
                     "대화 내용": cleaned_content,
                     "시간": timestamp
                 })
 
+            # 대화식 출력 (보기용)
+            st.write("#### 대화 기록 (대화식 보기)")
+            for message in chat:
+                role_label = "**You:**" if message["role"] == "user" else "**과학탐구 도우미:**"
+                timestamp = f" ({message['timestamp']})" if "timestamp" in message else ""
+                content = message["content"]
+
+                parts = re.split(r"(@@@@@.*?@@@@@)", content, flags=re.DOTALL)
+                for part in parts:
+                    if part.startswith("@@@@@") and part.endswith("@@@@@"):
+                        st.latex(part[5:-5].strip())
+                    else:
+                        cleaned = clean_inline_latex(part.strip())
+                        if cleaned:
+                            st.write(f"{role_label} {cleaned}{timestamp}" if role_label else cleaned)
+                            role_label = ""  # 같은 메시지에서 라벨은 한 번만 출력
+
+            # 복사용 표 출력
+            st.write("#### 대화 기록 (복사용 표)")
             df = pd.DataFrame(chat_table)
-
-            # HTML 테이블 출력 (escape=False → HTML/LaTeX 허용)
-            st.markdown(df.to_html(index=False, escape=False), unsafe_allow_html=True)
-
-            # MathJax 로딩 스크립트 (LaTeX 렌더링)
-            st.markdown(
-                """
-                <script type="text/javascript">
-                MathJax = {
-                  tex: {
-                    inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                    displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
-                  },
-                  svg: { fontCache: 'global' }
-                };
-                </script>
-                <script type="text/javascript" async
-                  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-                </script>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown(df.to_html(index=False), unsafe_allow_html=True)
 
         except json.JSONDecodeError:
             st.error("대화 기록을 불러오는 데 실패했습니다.")
