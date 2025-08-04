@@ -133,20 +133,43 @@ if password == st.secrets["PASSWORD"]:
     if chat_data:
         try:
             chat = json.loads(chat_data)
-            st.write("### 학생의 대화 기록")
+
+            # 표 데이터를 담을 리스트
+            chat_table = []
+
+            # 대화식 출력 (보기용)
+            st.write("### 학생의 대화 기록 (대화식 보기)")
             for message in chat:
                 role_label = "**You:**" if message["role"] == "user" else "**과학탐구 도우미:**"
                 timestamp = f" ({message['timestamp']})" if "timestamp" in message else ""
                 content = message["content"]
+
                 parts = re.split(r"(@@@@@.*?@@@@@)", content, flags=re.DOTALL)
+                cleaned_parts = []
                 for part in parts:
                     if part.startswith("@@@@@") and part.endswith("@@@@@"):
                         st.latex(part[5:-5].strip())
+                        cleaned_parts.append(part[5:-5].strip())
                     else:
                         cleaned = clean_inline_latex(part.strip())
                         if cleaned:
                             st.write(f"{role_label} {cleaned}{timestamp}" if role_label else cleaned)
+                            cleaned_parts.append(cleaned)
                             role_label = ""  # 한 번만 출력
+
+                # 표 데이터 추가
+                chat_table.append({
+                    "말한 사람": role_label.replace("**", "").replace(":", ""),
+                    "대화 내용": " ".join(cleaned_parts),
+                    "시간": message.get("timestamp", "")
+                })
+
+            # 복사용 표 출력
+            st.write("### 학생의 대화 기록 (복사용 표)")
+            import pandas as pd
+            df = pd.DataFrame(chat_table)
+            st.markdown(df.to_html(index=False), unsafe_allow_html=True)
+
         except json.JSONDecodeError:
             st.error("대화 기록을 불러오는 데 실패했습니다. JSON 형식이 잘못되었습니다.")
     else:
