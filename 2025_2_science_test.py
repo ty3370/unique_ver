@@ -294,13 +294,19 @@ def save_chat(subject, unit, subunit, topic, chat):
 
 # ===== 대화창 =====
 def chatbot_tab(subject, unit, subunit, topic):
-    key_prefix = "_".join([subject, unit, subunit, topic]).replace(" ", "_")
-    chat_key = f"chat_{key_prefix}"
+    key_prefix  = "_".join([subject, unit, subunit, topic]).replace(" ", "_")
+    chat_key    = f"chat_{key_prefix}"
+    input_key   = f"user_input_{key_prefix}"
+    loading_key = f"loading_{key_prefix}"
 
+    # 1) 세션 초기화 ----------------------------------------------------------------
     if chat_key not in st.session_state:
         st.session_state[chat_key] = load_chat(subject, unit, subunit, topic)
+    if loading_key not in st.session_state:
+        st.session_state[loading_key] = False
     messages = st.session_state[chat_key]
 
+    # 2) 기존 메시지 렌더링 (LaTeX·이미지 파싱 그대로) -------------------------------
     for msg in messages:
         if msg["role"] == "user":
             st.write(f"**You:** {msg['content']}")
@@ -313,78 +319,51 @@ def chatbot_tab(subject, unit, subunit, topic):
                 else:
                     clean_text = clean_inline_latex(part)
                     if clean_text.strip():
-                        lines = clean_text.strip().splitlines()
-                        for line in lines:
+                        for line in clean_text.strip().splitlines():
                             line = line.strip()
-                            # 이미지 링크가 문장 중간에 있어도 추출
-                            img_links = re.findall(r"(https?://\S+\.(?:png|jpg|jpeg))", line)
-                            for link in img_links:
+                            imgs = re.findall(r"(https?://\S+\.(?:png|jpe?g))", line)
+                            for link in imgs:
                                 st.image(link)
                                 line = line.replace(link, "").strip()
                             if line:
                                 st.write(f"**과학 도우미:** {line}")
 
-    input_key = f"user_input_{key_prefix}"
-    loading_key = f"loading_{key_prefix}"
-    if loading_key not in st.session_state:
-        st.session_state[loading_key] = False
+    # 3) 입력창 & 버튼 (항상 렌더) ---------------------------------------------------
+    placeholder = st.empty()
+    if not st.session_state[loading_key]:
+        with placeholder.container():
+            user_input = st.text_area("입력:", key=f"textarea_{key_prefix}_{len(messages)}")
+            if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
+                st.session_state[input_key]   = user_input.strip()
+                st.session_state[loading_key] = True
+                st.experimental_rerun()
 
-        # 빈 공간 확보
-        placeholder = st.empty()
-
-        # 입력창 & 버튼 표시
-        if not st.session_state.get(loading_key, False):
-            with placeholder.container():
-                user_input = st.text_area("입력: ", value="", key=f"textarea_{key_prefix}_{len(messages)}")
-                if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
-                    # 입력 저장 및 로딩 상태 진입
-                    st.session_state[input_key] = user_input
-                    st.session_state[loading_key] = True
-                    placeholder.empty()
-                    st.rerun()
-
-        # 로딩 상태일 때 응답 생성
-        if st.session_state.get(loading_key, False):
-            user_input = st.session_state.get(input_key, "")
-            if user_input:
-                with st.spinner("✏️ 과학 도우미가 답변을 생성 중입니다..."):
-                    assistant_reply = get_chat_response(
-                        system_prompt,
-                        messages + [{"role": "user", "content": user_input}]
-                    )
-                    messages.append({"role": "user", "content": user_input})
-                    messages.append({"role": "assistant", "content": assistant_reply})
-
-                    # 상태 갱신
-                    st.session_state[message_key] = messages
-                    st.session_state[loading_key] = False
-                    st.rerun()
-
+    # 4) 로딩 상태일 때만 OpenAI 호출 ------------------------------------------------
     if st.session_state[loading_key]:
-        user_input = st.session_state.get(input_key, "").strip()
-        unit_key = unit.split('.')[0].strip()
-        subunit_key = subunit.split('.')[0].strip()
-        topic_key = topic.split('.')[0].strip()
-
-        system_prompt = prompt_map.get(
-            (unit_key, subunit_key, topic_key),
-            lambda: "과학 개념을 설명하는 AI입니다."
-        )()
-
-        timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[{"role": "system", "content": system_prompt}] + messages + [{"role": "user", "content": user_input}],
-        )
-        answer = response.choices[0].message.content
-
-        messages.append({"role": "user", "content": user_input, "timestamp": timestamp})
-        messages.append({"role": "assistant", "content": answer})
-        save_chat(subject, unit, subunit, topic, messages)
-
-        st.session_state.pop(input_key, None)
-        st.session_state[loading_key] = False
-        st.rerun()
+        user_input = st.session_state.get(input_key, "")
+        if user_input:
+            unit_key, sub_key, top_key = (s.split(".")[0].strip() for s in (unit, subunit, topic))
+            system_prompt = prompt_map.get(
+                (unit_key, sub_key, top_key),
+                lambda: "과학 개념을 설명하는 AI입니다."
+            )()
+            with st.spinner("✏️ 과학 도우미가 답변을 생성 중입니다..."):
+                resp = client.chat.completions.create(
+                    model=MODEL,
+                    messages=[{"role": "system", "content": system_prompt}]
+                             + messages
+                             + [{"role": "user", "content": user_input}],
+                )
+                answer = resp.choices[0].message.content
+            timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
+            messages.extend([
+                {"role": "user",      "content": user_input, "timestamp": timestamp},
+                {"role": "assistant", "content": answer}
+            ])
+            save_chat(subject, unit, subunit, topic, messages)
+            st.session_state[chat_key]    = messages
+            st.session_state[loading_key] = False
+            st.experimental_rerun()
 
 # ===== 페이지 =====
 def page_1():
