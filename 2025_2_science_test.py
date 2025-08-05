@@ -329,14 +329,14 @@ def chatbot_tab(subject, unit, subunit, topic):
     if loading_key not in st.session_state:
         st.session_state[loading_key] = False
 
-    if not st.session_state[loading_key]:
-        user_input = st.text_area("입력: ", value="", key=f"textarea_{key_prefix}_{len(messages)}")
-        if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
-            st.session_state[loading_key] = True
-            st.session_state[input_key] = user_input
-            st.rerun()
-    else:
-        st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
+        if not st.session_state[loading_key]:
+            user_input = st.text_area("입력: ", value="", key=f"textarea_{key_prefix}_{len(messages)}")
+            if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
+                st.session_state[loading_key] = True
+                st.session_state[input_key] = user_input
+                st.rerun()
+        else:
+            st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
 
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
