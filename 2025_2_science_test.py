@@ -339,8 +339,20 @@ def chatbot_tab(subject, unit, subunit, topic):
                     st.session_state[input_key] = user_input
                     placeholder.empty()
                     st.rerun()
-        else:
-            st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
+
+        if st.session_state.get(loading_key, False):
+            user_input = st.session_state.get(input_key, "")
+            if user_input:
+                with st.spinner("✏️ 과학 도우미가 답변을 생성 중입니다..."):
+                    assistant_reply = get_chat_response(
+                        system_prompt,
+                        messages + [{"role": "user", "content": user_input}]
+                    )
+                    messages.append({"role": "user", "content": user_input})
+                    messages.append({"role": "assistant", "content": assistant_reply})
+                    st.session_state[message_key] = messages
+                    st.session_state[loading_key] = False
+                    st.rerun()
 
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
