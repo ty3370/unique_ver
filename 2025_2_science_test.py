@@ -332,24 +332,15 @@ def chatbot_tab(subject, unit, subunit, topic):
         placeholder = st.empty()
 
         if not st.session_state[loading_key]:
-            user_input = st.text_area("입력: ", value="", key=f"textarea_{key_prefix}_{len(messages)}")
-            if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
-                st.session_state[loading_key] = True
-                st.session_state[input_key] = user_input  # 👉 입력 저장
-                st.rerun()
+            with placeholder.container():
+                user_input = st.text_area("입력: ", value="", key=f"textarea_{key_prefix}_{len(messages)}")
+                if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
+                    st.session_state[loading_key] = True
+                    st.session_state[input_key] = user_input
+                    placeholder.empty()
+                    st.rerun()
         else:
             st.markdown("<br><i>✏️ 과학 도우미가 답변을 생성 중입니다...</i>", unsafe_allow_html=True)
-            user_input = st.session_state.get(input_key, "")  # 👉 저장된 입력 불러오기
-
-            # 여기에 답변 생성 로직이 있어야 함
-            if user_input:
-                with st.spinner("답변 생성 중..."):
-                    assistant_reply = get_chat_response(system_prompt, messages + [{"role": "user", "content": user_input}])
-                    messages.append({"role": "user", "content": user_input})
-                    messages.append({"role": "assistant", "content": assistant_reply})
-                    st.session_state[message_key] = messages
-                    st.session_state[loading_key] = False
-                    st.rerun()
 
     if st.session_state[loading_key]:
         user_input = st.session_state.get(input_key, "").strip()
