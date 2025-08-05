@@ -362,6 +362,7 @@ def chatbot_tab(subject, unit, subunit, topic):
             ])
             save_chat(subject, unit, subunit, topic, messages)
             st.session_state[chat_key]    = messages
+            st.session_state.pop(input_key, None)
             st.session_state[loading_key] = False
             st.experimental_rerun()
 
