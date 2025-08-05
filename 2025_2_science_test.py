@@ -336,7 +336,7 @@ def chatbot_tab(subject, unit, subunit, topic):
             if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
                 st.session_state[input_key]   = user_input.strip()
                 st.session_state[loading_key] = True
-                st.experimental_rerun()
+                st.rerun()
 
     # 4) 로딩 상태일 때만 OpenAI 호출 ------------------------------------------------
     if st.session_state[loading_key]:
@@ -364,7 +364,7 @@ def chatbot_tab(subject, unit, subunit, topic):
             st.session_state[chat_key]    = messages
             st.session_state.pop(input_key, None)
             st.session_state[loading_key] = False
-            st.experimental_rerun()
+            st.rerun()
 
 # ===== 페이지 =====
 def page_1():
