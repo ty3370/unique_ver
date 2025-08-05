@@ -153,9 +153,17 @@ if password == st.secrets["PASSWORD"]:
                     else:
                         cleaned = clean_inline_latex(part.strip())
                         if cleaned:
-                            st.write(f"{role_label} {cleaned}{timestamp}" if role_label else cleaned)
+                            lines = cleaned.splitlines()
+                            for line in lines:
+                                line = line.strip()
+                                img_links = re.findall(r"(https?://\S+\.(?:png|jpg|jpeg))", line)
+                                for link in img_links:
+                                    st.image(link)
+                                    line = line.replace(link, "").strip()
+                                if line:
+                                    st.write(f"{role_label} {line}{timestamp}" if role_label else line)
+                                    role_label = ""  # 한 번만 출력
                             cleaned_parts.append(cleaned)
-                            role_label = ""  # 한 번만 출력
 
                 # 표 데이터 추가
                 chat_table.append({
