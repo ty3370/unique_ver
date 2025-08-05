@@ -329,17 +329,21 @@ def chatbot_tab(subject, unit, subunit, topic):
     if loading_key not in st.session_state:
         st.session_state[loading_key] = False
 
+        # 빈 공간 확보
         placeholder = st.empty()
 
-        if not st.session_state[loading_key]:
+        # 입력창 & 버튼 표시
+        if not st.session_state.get(loading_key, False):
             with placeholder.container():
                 user_input = st.text_area("입력: ", value="", key=f"textarea_{key_prefix}_{len(messages)}")
                 if st.button("전송", key=f"send_{key_prefix}_{len(messages)}") and user_input.strip():
-                    st.session_state[loading_key] = True
+                    # 입력 저장 및 로딩 상태 진입
                     st.session_state[input_key] = user_input
+                    st.session_state[loading_key] = True
                     placeholder.empty()
                     st.rerun()
 
+        # 로딩 상태일 때 응답 생성
         if st.session_state.get(loading_key, False):
             user_input = st.session_state.get(input_key, "")
             if user_input:
@@ -350,6 +354,8 @@ def chatbot_tab(subject, unit, subunit, topic):
                     )
                     messages.append({"role": "user", "content": user_input})
                     messages.append({"role": "assistant", "content": assistant_reply})
+
+                    # 상태 갱신
                     st.session_state[message_key] = messages
                     st.session_state[loading_key] = False
                     st.rerun()
