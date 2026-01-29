@@ -155,7 +155,7 @@ def render_p5(code):
             <div id="container"></div>
         </div>
 
-        <!-- Pan & Zoom (stage 하나에만 transform 적용) -->
+        <!-- Pan & Zoom -->
         <script>
             let offsetX = 0;
             let offsetY = 0;
@@ -181,7 +181,6 @@ def render_p5(code):
 
             stage.addEventListener('mousedown', e => {{
                 dragging = true;
-                stage.style.cursor = 'grabbing';
                 startX = e.clientX - offsetX;
                 startY = e.clientY - offsetY;
             }});
@@ -195,7 +194,6 @@ def render_p5(code):
 
             window.addEventListener('mouseup', () => {{
                 dragging = false;
-                stage.style.cursor = 'grab';
             }});
 
             document.getElementById('fs').onclick = () => {{
@@ -207,29 +205,13 @@ def render_p5(code):
             }};
         </script>
 
-        <!-- p5 canvas를 생성 후 container로 안전하게 이동 -->
+        <!-- 🔒 p5를 무조건 instance mode로 감싸서 실행 -->
         <script>
-            function attachCanvasToContainer() {{
-                const container = document.getElementById('container');
-                const c = document.querySelector('canvas');
-                if (container && c && c.parentElement !== container) {{
-                    container.appendChild(c);
-                }}
-            }}
+            const userSketch = (p) => {{
+                {code_str}
+            }};
 
-            let tries = 0;
-            const t = setInterval(() => {{
-                attachCanvasToContainer();
-                tries++;
-                if (document.querySelector('#container canvas') || tries > 40) {{
-                    clearInterval(t);
-                }}
-            }}, 50);
-        </script>
-
-        <!-- 사용자 p5 코드 -->
-        <script>
-            {code_str}
+            new p5(userSketch, document.getElementById('container'));
         </script>
     </body>
     </html>
