@@ -11,7 +11,8 @@ from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 
 st.set_page_config(
-    page_title="🚀 물리학 시뮬레이션 제작 AI",
+    page_title="물리학 시뮬레이션 제작 AI",
+    page_icon="🚀",
     layout="wide"
 )
 
