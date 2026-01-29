@@ -97,7 +97,7 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# p5.js 실시간 실행기 (TypeError 및 회색 화면 해결 버전)
+# p5.js 실시간 실행기
 def render_p5(code):
     if not code:
         return
@@ -114,26 +114,29 @@ def render_p5(code):
                 margin: 0;
                 background: #f0f0f0;
                 overflow: hidden;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-            }}
-            canvas {{
-                display: block !important;
             }}
         </style>
     </head>
     <body>
-        <script>{code_str}</script>
+        <div id="sketch"></div>
+
+        <script>
+        new p5(function(p) {{
+            {code_str}
+            
+            if (!p.setup) {{
+                p.setup = function() {{
+                    p.createCanvas(400, 400);
+                }}
+            }}
+        }}, document.getElementById("sketch"));
+        </script>
     </body>
     </html>
     """
 
-    components.html(
-        p5_html,
-        height=500
-    )
+    components.html(p5_html, height=500)
+
 
 # 1페이지: 정보 입력
 def page_1():
