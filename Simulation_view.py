@@ -56,8 +56,10 @@ def fetch_numbers():
         """
         SELECT DISTINCT number
         FROM qna_unique
+        WHERE topic NOT IN %s
         ORDER BY number
-        """
+        """,
+        (EXCLUDED_TOPICS,)
     )
     rows = cur.fetchall()
     cur.close()
@@ -72,9 +74,10 @@ def fetch_names(number):
         SELECT DISTINCT name
         FROM qna_unique
         WHERE number=%s
+          AND topic NOT IN %s
         ORDER BY name
         """,
-        (number,)
+        (number, EXCLUDED_TOPICS)
     )
     rows = cur.fetchall()
     cur.close()
@@ -90,9 +93,10 @@ def fetch_codes(number, name):
         FROM qna_unique
         WHERE number=%s
           AND name=%s
+          AND topic NOT IN %s
         ORDER BY code
         """,
-        (number, name)
+        (number, name, EXCLUDED_TOPICS)
     )
     rows = cur.fetchall()
     cur.close()
