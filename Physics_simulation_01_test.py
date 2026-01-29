@@ -117,7 +117,7 @@ def render_p5(code):
 html, body {
   margin: 0;
   padding: 0;
-  background: #f0f0f0;
+  background: transparent;
   overflow: auto;
 }
 #fs {
@@ -381,6 +381,18 @@ def page_2():
         st.subheader("🖥️ Simulation Preview")
 
         if st.session_state.get("current_code"):
+
+            st.markdown(
+                """
+                <style>
+                iframe {
+                    background: transparent !important;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+
             p5_html = render_p5(
                 st.session_state["current_code"]
             )
