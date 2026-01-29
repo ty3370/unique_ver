@@ -106,116 +106,127 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-    if not code:
-        return
+    return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>p5 Simulation</title>
+<style>
+  html, body {{
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #111;
+    color: #eee;
+    font-family: sans-serif;
+  }}
 
-    code_str = str(code).strip()
+  #ui {{
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(0,0,0,0.6);
+    padding: 8px 10px;
+    border-radius: 6px;
+  }}
 
-    p5_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
-        <style>
-            body {{
-                margin: 0;
-                background: #f0f0f0;
-                overflow: hidden;
-            }}
-            #controls {{
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                z-index: 1000;
-                background: rgba(255,255,255,0.9);
-                padding: 6px;
-                border-radius: 6px;
-                font-size: 12px;
-            }}
-            #stage {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                transform-origin: top left;
-                cursor: grab;
-            }}
-            #container {{
-                position: relative;
-            }}
-        </style>
-    </head>
-    <body>
-        <div id="controls">
-            Zoom
-            <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1">
-            <button id="fs">Fullscreen</button>
-        </div>
+  #stage {{
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+  }}
 
-        <div id="stage">
-            <div id="container"></div>
-        </div>
+  canvas {{
+    display: block;
+  }}
+</style>
+</head>
 
-        <!-- Pan & Zoom -->
-        <script>
-            let offsetX = 0;
-            let offsetY = 0;
-            let dragging = false;
-            let startX = 0;
-            let startY = 0;
-            let scale = 1;
+<body>
+  <div id="ui">
+    Zoom:
+    <input id="zoom" type="range" min="0.2" max="3" step="0.01" value="1">
+    <button id="fs">Fullscreen</button>
+  </div>
 
-            const stage = document.getElementById('stage');
-            const zoomInput = document.getElementById('zoom');
+  <div id="stage"></div>
 
-            function updateTransform() {{
-                stage.style.transform =
-                    'translate(' + offsetX + 'px,' + offsetY + 'px) scale(' + scale + ')';
-            }}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 
-            updateTransform();
+  <script>
+  // ---------------- p5 code ----------------
+  {code}
+  </script>
 
-            zoomInput.oninput = function() {{
-                scale = parseFloat(this.value);
-                updateTransform();
-            }};
+  <script>
+  // -------- interaction controller (SAFE) --------
+  (() => {{
+    let offsetX = 0;
+    let offsetY = 0;
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let zoomScale = 1;
 
-            stage.addEventListener('mousedown', e => {{
-                dragging = true;
-                startX = e.clientX - offsetX;
-                startY = e.clientY - offsetY;
-            }});
+    const stage = document.getElementById('stage');
+    const zoomInput = document.getElementById('zoom');
 
-            window.addEventListener('mousemove', e => {{
-                if (!dragging) return;
-                offsetX = e.clientX - startX;
-                offsetY = e.clientY - startY;
-                updateTransform();
-            }});
+    function updateTransform() {{
+      stage.style.transform =
+        `translate(${{offsetX}}px, ${{offsetY}}px) scale(${{zoomScale}})`;
+    }}
 
-            window.addEventListener('mouseup', () => {{
-                dragging = false;
-            }});
+    zoomInput.addEventListener('input', function () {{
+      zoomScale = parseFloat(this.value);
+      updateTransform();
+    }});
 
-            document.getElementById('fs').onclick = () => {{
-                if (!document.fullscreenElement) {{
-                    document.documentElement.requestFullscreen();
-                }} else {{
-                    document.exitFullscreen();
-                }}
-            }};
-        </script>
+    stage.addEventListener('mousedown', (e) => {{
+      dragging = true;
+      startX = e.clientX - offsetX;
+      startY = e.clientY - offsetY;
+    }});
 
-        <!-- 🔒 p5를 무조건 instance mode로 감싸서 실행 -->
-        <script>
-            const userSketch = (p) => {{
-                {code_str}
-            }};
+    window.addEventListener('mousemove', (e) => {{
+      if (!dragging) return;
+      offsetX = e.clientX - startX;
+      offsetY = e.clientY - startY;
+      updateTransform();
+    }});
 
-            new p5(userSketch, document.getElementById('container'));
-        </script>
-    </body>
-    </html>
-    """
+    window.addEventListener('mouseup', () => {{
+      dragging = false;
+    }});
+
+    document.getElementById('fs').addEventListener('click', () => {{
+      if (!document.fullscreenElement) {{
+        document.documentElement.requestFullscreen();
+      }} else {{
+        document.exitFullscreen();
+      }}
+    }});
+
+    // p5 canvas를 stage 안으로 이동
+    const observer = new MutationObserver(() => {{
+      const c = document.querySelector('canvas');
+      if (c && c.parentElement !== stage) {{
+        stage.appendChild(c);
+        updateTransform();
+      }}
+    }});
+
+    observer.observe(document.body, {{
+      childList: true,
+      subtree: true
+    }});
+  }})();
+  </script>
+</body>
+</html>
+"""
 
     components.html(p5_html, height=650, scrolling=True)
 
