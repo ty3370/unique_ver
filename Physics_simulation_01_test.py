@@ -240,7 +240,6 @@ def page_2():
         st.info("왼쪽 사이드바에서 프로젝트를 선택하거나 새로 생성해 주세요.")
         return
 
-    # 🔑 로딩 상태 초기화
     if "loading" not in st.session_state:
         st.session_state["loading"] = False
 
@@ -266,7 +265,7 @@ def page_2():
                     def replace_code_block(match):
                         nonlocal code_counter
                         code_counter += 1
-                        return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료**"
+                        return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료** 💡"
 
                     display_content = re.sub(
                         r"\+{5}.*?\+{5}",
