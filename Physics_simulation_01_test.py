@@ -97,14 +97,16 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# p5.js 실시간 실행기 (TypeError 및 회색 화면 해결 버전)
+# p5.js 실시간 실행기 (TypeError 수정 버전)
 def render_p5(code):
     if not code:
         return
     
-    # 코드를 문자열로 확정하고 해시 생성 (키 값 중복 방지)
+    import time
     code_str = str(code).strip()
+    # TypeError 방지를 위해 코드 해시와 타임스탬프를 조합하여 고유 키 생성
     code_hash = hashlib.md5(code_str.encode('utf-8')).hexdigest()
+    unique_key = f"p5_render_{code_hash}_{int(time.time() * 1000)}"
     
     p5_html = f"""
     <!DOCTYPE html>
@@ -121,8 +123,8 @@ def render_p5(code):
     </body>
     </html>
     """
-    # key 인자를 고유하게 설정하여 Streamlit이 내용 변경을 감지하고 다시 그리게 함
-    components.html(p5_html, height=500, key=f"p5_render_{code_hash}")
+    # 고유 키를 사용하여 컴포넌트 충돌 방지
+    components.html(p5_html, height=500, key=unique_key)
 
 # 1페이지: 정보 입력
 def page_1():
