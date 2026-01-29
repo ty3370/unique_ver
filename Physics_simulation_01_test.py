@@ -106,95 +106,168 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-
     html = f"""
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+
   <style>
     body {{
       margin: 0;
-      padding: 0;
+      overflow: hidden;
       background: #111;
       color: #eee;
       font-family: sans-serif;
     }}
     #ui {{
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      background: rgba(30,30,30,0.9);
       padding: 10px;
-      background: #222;
+      border-radius: 6px;
     }}
     #container {{
-      display: block;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
     }}
     canvas {{
       display: block;
     }}
   </style>
 </head>
+
 <body>
 
 <div id="ui">
-  <label>Zoom (표시용, 아직 적용 안 함)</label>
-  <input type="range" min="0.5" max="2" step="0.01" value="1" disabled>
+  <div>
+    Zoom
+    <input type="range" min="0.2" max="5" step="0.01" value="1"
+      oninput="setZoomFromSlider(parseFloat(this.value))">
+  </div>
+  <button onclick="toggleFullscreen()">Fullscreen</button>
 </div>
 
 <div id="container"></div>
 
 <script>
-/* =========================
-   에러를 화면에 표시
-   ========================= */
-window.onerror = function(msg, src, line, col, err) {{
+/* ===============================
+   에러 표시
+   =============================== */
+window.onerror = function(msg, src, line, col) {{
   const pre = document.createElement('pre');
-  pre.style.whiteSpace = 'pre-wrap';
   pre.style.color = 'red';
-  pre.textContent =
-    'JS Error:\\n' +
-    msg + '\\n' +
-    src + ':' + line + ':' + col;
+  pre.textContent = msg + '\\n' + src + ':' + line;
   document.body.appendChild(pre);
 }};
 
-/* =========================
-   p5 createCanvas 강제 parent
-   (글로벌/인스턴스 모드 공통)
-   ========================= */
+/* ===============================
+   p5 createCanvas → container
+   =============================== */
 (function () {{
-  const original = p5.prototype.createCanvas;
-  p5.prototype.createCanvas = function (w, h, renderer) {{
-    const c = original.call(this, w, h, renderer);
-    try {{
-      c.parent('container');
-    }} catch (e) {{
-      console.warn('canvas parent 실패', e);
-    }}
+  const orig = p5.prototype.createCanvas;
+  p5.prototype.createCanvas = function(w, h, renderer) {{
+    const c = orig.call(this, w, h, renderer);
+    try {{ c.parent('container'); }} catch(e) {{}}
     return c;
   }};
 }})();
 
-/* =========================
-   사용자 p5 코드 실행
-   ========================= */
-try {{
-{code}
-}} catch (e) {{
-  const pre = document.createElement('pre');
-  pre.style.color = 'red';
-  pre.textContent = 'Runtime Error:\\n' + e.toString();
-  document.body.appendChild(pre);
+/* ===============================
+   Camera variables
+   =============================== */
+let zoom = 1;
+let camX = 0;
+let camY = 0;
+
+let isDragging = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
+
+/* ===============================
+   Zoom from slider (center based)
+   =============================== */
+function setZoomFromSlider(value) {{
+  let cx = width / 2;
+  let cy = height / 2;
+
+  let wx = (cx - camX) / zoom;
+  let wy = (cy - camY) / zoom;
+
+  zoom = value;
+
+  camX = cx - wx * zoom;
+  camY = cy - wy * zoom;
 }}
+
+/* ===============================
+   Fullscreen
+   =============================== */
+function toggleFullscreen() {{
+  if (!document.fullscreenElement) {{
+    document.documentElement.requestFullscreen();
+  }} else {{
+    document.exitFullscreen();
+  }}
+}}
+
+document.addEventListener('fullscreenchange', () => {{
+  if (window.resizeCanvas) {{
+    resizeCanvas(window.innerWidth, window.innerHeight);
+  }}
+}});
+
+/* ===============================
+   Mouse controls
+   =============================== */
+function mousePressed() {{
+  isDragging = true;
+  lastMouseX = mouseX;
+  lastMouseY = mouseY;
+}}
+
+function mouseReleased() {{
+  isDragging = false;
+}}
+
+function mouseDragged() {{
+  if (!isDragging) return;
+
+  camX += mouseX - lastMouseX;
+  camY += mouseY - lastMouseY;
+
+  lastMouseX = mouseX;
+  lastMouseY = mouseY;
+}}
+
+function mouseWheel(event) {{
+  let factor = 1 - event.delta * 0.001;
+  let newZoom = constrain(zoom * factor, 0.2, 5);
+
+  let wx = (mouseX - camX) / zoom;
+  let wy = (mouseY - camY) / zoom;
+
+  zoom = newZoom;
+
+  camX = mouseX - wx * zoom;
+  camY = mouseY - wy * zoom;
+
+  return false;
+}}
+
+/* ===============================
+   User p5 code
+   =============================== */
+{code}
 </script>
 
 </body>
 </html>
 """
-
     components.html(html, height=800)
-
 
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
