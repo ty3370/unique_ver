@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pymysql
 import json
 from datetime import datetime
@@ -6,7 +7,6 @@ import google.generativeai as genai
 import re
 import hashlib
 from zoneinfo import ZoneInfo
-import streamlit.components.v1 as components
 
 st.set_page_config(layout="wide")
 
@@ -106,111 +106,95 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-    if not code:
-        return
 
-    code_str = str(code).strip()
+    html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <style>
+    body {{
+      margin: 0;
+      padding: 0;
+      background: #111;
+      color: #eee;
+      font-family: sans-serif;
+    }}
+    #ui {{
+      padding: 10px;
+      background: #222;
+    }}
+    #container {{
+      display: block;
+      width: 100%;
+      height: 100%;
+    }}
+    canvas {{
+      display: block;
+    }}
+  </style>
+</head>
+<body>
 
-    p5_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
-        <style>
-            body {{
-                margin: 0;
-                background: #f0f0f0;
-                overflow: hidden;
-            }}
-            #controls {{
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                z-index: 1000;
-                background: rgba(255,255,255,0.9);
-                padding: 6px;
-                border-radius: 6px;
-                font-size: 12px;
-            }}
-            #stage {{
-                position: absolute;
-                top: 0;
-                left: 0;
-                transform-origin: top left;
-                cursor: grab;
-            }}
-        </style>
-    </head>
-    <body>
-        <div id="controls">
-            Zoom
-            <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1">
-            <button id="fs">Fullscreen</button>
-        </div>
+<div id="ui">
+  <label>Zoom (표시용, 아직 적용 안 함)</label>
+  <input type="range" min="0.5" max="2" step="0.01" value="1" disabled>
+</div>
 
-        <div id="stage">
-            <div id="container"></div>
-        </div>
+<div id="container"></div>
 
-        <script>
-            let offsetX = 0;
-            let offsetY = 0;
-            let dragging = false;
-            let startX = 0;
-            let startY = 0;
-            let scale = 1;
+<script>
+/* =========================
+   에러를 화면에 표시
+   ========================= */
+window.onerror = function(msg, src, line, col, err) {{
+  const pre = document.createElement('pre');
+  pre.style.whiteSpace = 'pre-wrap';
+  pre.style.color = 'red';
+  pre.textContent =
+    'JS Error:\\n' +
+    msg + '\\n' +
+    src + ':' + line + ':' + col;
+  document.body.appendChild(pre);
+}};
 
-            const stage = document.getElementById('stage');
-            const zoomInput = document.getElementById('zoom');
+/* =========================
+   p5 createCanvas 강제 parent
+   (글로벌/인스턴스 모드 공통)
+   ========================= */
+(function () {{
+  const original = p5.prototype.createCanvas;
+  p5.prototype.createCanvas = function (w, h, renderer) {{
+    const c = original.call(this, w, h, renderer);
+    try {{
+      c.parent('container');
+    }} catch (e) {{
+      console.warn('canvas parent 실패', e);
+    }}
+    return c;
+  }};
+}})();
 
-            function updatePan() {{
-                stage.style.transform =
-                    'translate(' + offsetX + 'px,' + offsetY + 'px)';
-            }}
+/* =========================
+   사용자 p5 코드 실행
+   ========================= */
+try {{
+{code}
+}} catch (e) {{
+  const pre = document.createElement('pre');
+  pre.style.color = 'red';
+  pre.textContent = 'Runtime Error:\\n' + e.toString();
+  document.body.appendChild(pre);
+}}
+</script>
 
-            stage.addEventListener('mousedown', e => {{
-                dragging = true;
-                startX = e.clientX - offsetX;
-                startY = e.clientY - offsetY;
-            }});
+</body>
+</html>
+"""
 
-            window.addEventListener('mousemove', e => {{
-                if (!dragging) return;
-                offsetX = e.clientX - startX;
-                offsetY = e.clientY - startY;
-                updatePan();
-            }});
+    components.html(html, height=800)
 
-            window.addEventListener('mouseup', () => {{
-                dragging = false;
-            }});
-
-            document.getElementById('fs').onclick = () => {{
-                if (!document.fullscreenElement) {{
-                    document.documentElement.requestFullscreen();
-                }} else {{
-                    document.exitFullscreen();
-                }}
-            }};
-        </script>
-
-        <script>
-            const _createCanvas = window.createCanvas;
-            window.createCanvas = function() {{
-                const c = _createCanvas.apply(this, arguments);
-                c.parent('container');
-                return c;
-            }};
-        </script>
-
-        <script>
-            {code_str}
-        </script>
-    </body>
-    </html>
-    """
-
-    components.html(p5_html, height=650, scrolling=True)
 
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
@@ -281,7 +265,7 @@ def page_2():
                 def replace_code_block(match):
                     nonlocal code_counter
                     code_counter += 1
-                    return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료**"
+                    return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료** 💡"
 
                 display_content = re.sub(
                     r"\+{5}.*?\+{5}",
