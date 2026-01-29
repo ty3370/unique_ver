@@ -139,13 +139,13 @@ def render_p5(code):
         <div id="controls">
             Zoom
             <input type="range" min="0.5" max="2" step="0.1" value="1"
-                   oninput="
-                   const c = document.querySelector('canvas');
-                   if (c) {
-                       c.style.transformOrigin = 'top left';
-                       c.style.transform = 'scale(' + this.value + ')';
-                   }
-                   "
+                oninput="
+                const c = document.querySelector('canvas');
+                if (c) {{
+                    c.style.transformOrigin = 'top left';
+                    c.style.transform = 'scale(' + this.value + ')';
+                }}
+                ">
         </div>
         <div id="container"></div>
         <script>
