@@ -63,11 +63,16 @@ def fetch_names(number):
     db.close()
     return [r[0] for r in rows]
 
-def fetch_topics(number, name):
+def fetch_identifiers(number, name):
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
-        "SELECT DISTINCT topic FROM qna_unique WHERE number=%s AND name=%s ORDER BY topic",
+        """
+        SELECT DISTINCT identifier
+        FROM qna_unique
+        WHERE number=%s AND name=%s
+        ORDER BY identifier
+        """,
         (number, name)
     )
     rows = cur.fetchall()
@@ -75,12 +80,33 @@ def fetch_topics(number, name):
     db.close()
     return [r[0] for r in rows]
 
-def fetch_chat(number, name, topic):
+def fetch_topics(number, name, identifier):
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
-        "SELECT chat FROM qna_unique WHERE number=%s AND name=%s AND topic=%s",
-        (number, name, topic)
+        """
+        SELECT DISTINCT topic
+        FROM qna_unique
+        WHERE number=%s AND name=%s AND identifier=%s
+        ORDER BY topic
+        """,
+        (number, name, identifier)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    return [r[0] for r in rows]
+
+def fetch_chat(number, name, identifier, topic):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        SELECT chat
+        FROM qna_unique
+        WHERE number=%s AND name=%s AND identifier=%s AND topic=%s
+        """,
+        (number, name, identifier, topic)
     )
     row = cur.fetchone()
     cur.close()
@@ -114,12 +140,17 @@ name = st.selectbox("이름", ["선택"] + names)
 if name == "선택":
     st.stop()
 
-topics = fetch_topics(number, name)
+identifiers = fetch_identifiers(number, name)
+identifier = st.selectbox("식별코드", ["선택"] + identifiers)
+if identifier == "선택":
+    st.stop()
+
+topics = fetch_topics(number, name, identifier)
 topic = st.selectbox("토픽", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
-chat_raw = fetch_chat(number, name, topic)
+chat_raw = fetch_chat(number, name, identifier, topic)
 if not chat_raw:
     st.warning("대화 없음")
     st.stop()
