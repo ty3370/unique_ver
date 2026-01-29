@@ -387,7 +387,7 @@ def page_2():
             components.html(
                 p5_html,
                 height=650,
-                scrolling=False
+                scrolling=True
             )
 
             with st.expander("소스 코드 확인"):
