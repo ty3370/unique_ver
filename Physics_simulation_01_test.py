@@ -256,7 +256,6 @@ def page_2():
                 key="prompt_area",
             )
 
-            # ✅ 입력 바로 아래에 AI 요청 버튼
             if st.button("🤖 AI에게 요청", use_container_width=True, type="primary"):
                 if user_input.strip():
                     messages.append({"role": "user", "content": user_input})
@@ -290,10 +289,7 @@ def page_2():
                 else:
                     st.warning("시뮬레이션 설명을 입력해 주세요.")
 
-            # ⬇️ 과거 결과(코드 버전) 관련 UI는 아래로 분리
             if all_code_snippets:
-                st.divider()
-
                 selected_ver = st.selectbox(
                     "코드 버전 선택",
                     range(len(all_code_snippets)),
