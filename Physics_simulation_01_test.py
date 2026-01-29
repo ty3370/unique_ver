@@ -310,13 +310,11 @@ def page_2():
                         else:
                             st.warning("시뮬레이션 설명을 입력해 주세요.")
 
-            # =========================
-            # 2️⃣ 로딩 상태 처리 (다음 rerun)
-            # =========================
             if st.session_state["loading"]:
                 placeholder.empty()
                 stage.empty()
-                show_stage("🤖 시뮬레이션 코드를 생성 중입니다...")
+                show_stage("시뮬레이션 코드를 생성 중입니다...")
+                st.markdown(" ")
 
                 user_input = st.session_state.pop("pending_input", "")
 
