@@ -139,9 +139,6 @@ def render_p5(code):
                 transform-origin: top left;
                 cursor: grab;
             }}
-            #stage.dragging {{
-                cursor: grabbing;
-            }}
         </style>
     </head>
     <body>
@@ -156,29 +153,32 @@ def render_p5(code):
         </div>
 
         <script>
-            let scale = 1;
             let offsetX = 0;
             let offsetY = 0;
             let dragging = false;
             let startX = 0;
             let startY = 0;
+            let scale = 1;
 
             const stage = document.getElementById('stage');
             const zoomInput = document.getElementById('zoom');
 
-            function updateTransform() {{
+            function updatePan() {{
                 stage.style.transform =
-                    'translate(' + offsetX + 'px,' + offsetY + 'px) scale(' + scale + ')';
+                    'translate(' + offsetX + 'px,' + offsetY + 'px)';
             }}
 
             zoomInput.oninput = function() {{
                 scale = parseFloat(this.value);
-                updateTransform();
+                const c = document.querySelector('canvas');
+                if (c) {{
+                    c.style.transformOrigin = 'top left';
+                    c.style.transform = 'scale(' + scale + ')';
+                }}
             }};
 
             stage.addEventListener('mousedown', e => {{
                 dragging = true;
-                stage.classList.add('dragging');
                 startX = e.clientX - offsetX;
                 startY = e.clientY - offsetY;
             }});
@@ -187,12 +187,11 @@ def render_p5(code):
                 if (!dragging) return;
                 offsetX = e.clientX - startX;
                 offsetY = e.clientY - startY;
-                updateTransform();
+                updatePan();
             }});
 
             window.addEventListener('mouseup', () => {{
                 dragging = false;
-                stage.classList.remove('dragging');
             }});
 
             document.getElementById('fs').onclick = () => {{
