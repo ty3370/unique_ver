@@ -4,6 +4,13 @@ import json
 import re
 import pandas as pd
 
+# 조회에서 제외할 토픽들
+EXCLUDED_TOPICS = (
+    "Ⅰ. 화학 반응의 규칙과 에너지 변화",
+    "Ⅱ. 기권과 날씨",
+    "Ⅲ. 운동과 에너지",
+)
+
 def clean_inline_latex(text):
     text = re.sub(r",\s*\\text\{(.*?)\}", r" \1", text)
     text = re.sub(r"\\text\{(.*?)\}", r"\1", text)
@@ -45,7 +52,15 @@ def connect_to_db():
 def fetch_numbers():
     db = connect_to_db()
     cur = db.cursor()
-    cur.execute("SELECT DISTINCT number FROM qna_unique ORDER BY number")
+    cur.execute(
+        """
+        SELECT DISTINCT number
+        FROM qna_unique
+        WHERE topic NOT IN %s
+        ORDER BY number
+        """,
+        (EXCLUDED_TOPICS,)
+    )
     rows = cur.fetchall()
     cur.close()
     db.close()
@@ -55,8 +70,14 @@ def fetch_names(number):
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
-        "SELECT DISTINCT name FROM qna_unique WHERE number=%s ORDER BY name",
-        (number,)
+        """
+        SELECT DISTINCT name
+        FROM qna_unique
+        WHERE number=%s
+          AND topic NOT IN %s
+        ORDER BY name
+        """,
+        (number, EXCLUDED_TOPICS)
     )
     rows = cur.fetchall()
     cur.close()
@@ -70,10 +91,12 @@ def fetch_codes(number, name):
         """
         SELECT DISTINCT code
         FROM qna_unique
-        WHERE number=%s AND name=%s
+        WHERE number=%s
+          AND name=%s
+          AND topic NOT IN %s
         ORDER BY code
         """,
-        (number, name)
+        (number, name, EXCLUDED_TOPICS)
     )
     rows = cur.fetchall()
     cur.close()
@@ -87,10 +110,13 @@ def fetch_topics(number, name, code):
         """
         SELECT DISTINCT topic
         FROM qna_unique
-        WHERE number=%s AND name=%s AND code=%s
+        WHERE number=%s
+          AND name=%s
+          AND code=%s
+          AND topic NOT IN %s
         ORDER BY topic
         """,
-        (number, name, code)
+        (number, name, code, EXCLUDED_TOPICS)
     )
     rows = cur.fetchall()
     cur.close()
@@ -104,7 +130,10 @@ def fetch_chat(number, name, code, topic):
         """
         SELECT chat
         FROM qna_unique
-        WHERE number=%s AND name=%s AND code=%s AND topic=%s
+        WHERE number=%s
+          AND name=%s
+          AND code=%s
+          AND topic=%s
         """,
         (number, name, code, topic)
     )
