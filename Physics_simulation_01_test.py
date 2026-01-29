@@ -106,129 +106,83 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-    return f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>p5 Simulation</title>
-<style>
-  html, body {{
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    background: #111;
-    color: #eee;
-    font-family: sans-serif;
-  }}
+    if not code:
+        return
 
-  #ui {{
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    z-index: 10;
-    background: rgba(0,0,0,0.6);
-    padding: 8px 10px;
-    border-radius: 6px;
-  }}
+    code_str = str(code).strip()
 
-  #stage {{
-    position: absolute;
-    top: 0;
-    left: 0;
-    transform-origin: top left;
-  }}
+    p5_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+        <style>
+            body {{ margin: 0; background: #f0f0f0; overflow: hidden; }}
+            #controls {{
+                position: fixed; top: 10px; right: 10px; z-index: 1000;
+                background: rgba(255,255,255,0.9); padding: 8px; border-radius: 6px;
+            }}
+            /* 캔버스가 담길 컨테이너의 크기를 명시적으로 설정 */
+            #container {{ width: 100vw; height: 100vh; display: block; }}
+        </style>
+    </head>
+    <body>
+        <div id="controls">
+            Zoom: <input id="zoom" type="range" min="0.5" max="3" step="0.1" value="1">
+            <button id="fs">Fullscreen</button>
+        </div>
+        <div id="container"></div>
 
-  canvas {{
-    display: block;
-  }}
-</style>
-</head>
+        <script>
+            // p5.js가 참조할 전역 변수
+            window.globalScale = 1.0;
+            window.globalOffsetX = 0;
+            window.globalOffsetY = 0;
 
-<body>
-  <div id="ui">
-    Zoom:
-    <input id="zoom" type="range" min="0.2" max="3" step="0.01" value="1">
-    <button id="fs">Fullscreen</button>
-  </div>
+            const zoomInput = document.getElementById('zoom');
+            zoomInput.oninput = function() {{
+                window.globalScale = parseFloat(this.value); // CSS가 아닌 값을 전달
+            }};
 
-  <div id="stage"></div>
+            // 드래그 기능으로 offset 업데이트
+            let isDragging = false;
+            let startX, startY;
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+            window.addEventListener('mousedown', e => {{
+                if(e.target.tagName === 'CANVAS') {{
+                    isDragging = true;
+                    startX = e.clientX - window.globalOffsetX;
+                    startY = e.clientY - window.globalOffsetY;
+                }}
+            }});
+            window.addEventListener('mousemove', e => {{
+                if (isDragging) {{
+                    window.globalOffsetX = e.clientX - startX;
+                    window.globalOffsetY = e.clientY - startY;
+                }}
+            }});
+            window.addEventListener('mouseup', () => isDragging = false);
 
-  <script>
-  // ---------------- p5 code ----------------
-  {code}
-  </script>
+            document.getElementById('fs').onclick = () => {{
+                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+                else document.exitFullscreen();
+            }};
 
-  <script>
-  // -------- interaction controller (SAFE) --------
-  (() => {{
-    let offsetX = 0;
-    let offsetY = 0;
-    let dragging = false;
-    let startX = 0;
-    let startY = 0;
-    let zoomScale = 1;
-
-    const stage = document.getElementById('stage');
-    const zoomInput = document.getElementById('zoom');
-
-    function updateTransform() {{
-      stage.style.transform =
-        `translate(${{offsetX}}px, ${{offsetY}}px) scale(${{zoomScale}})`;
-    }}
-
-    zoomInput.addEventListener('input', function () {{
-      zoomScale = parseFloat(this.value);
-      updateTransform();
-    }});
-
-    stage.addEventListener('mousedown', (e) => {{
-      dragging = true;
-      startX = e.clientX - offsetX;
-      startY = e.clientY - offsetY;
-    }});
-
-    window.addEventListener('mousemove', (e) => {{
-      if (!dragging) return;
-      offsetX = e.clientX - startX;
-      offsetY = e.clientY - startY;
-      updateTransform();
-    }});
-
-    window.addEventListener('mouseup', () => {{
-      dragging = false;
-    }});
-
-    document.getElementById('fs').addEventListener('click', () => {{
-      if (!document.fullscreenElement) {{
-        document.documentElement.requestFullscreen();
-      }} else {{
-        document.exitFullscreen();
-      }}
-    }});
-
-    // p5 canvas를 stage 안으로 이동
-    const observer = new MutationObserver(() => {{
-      const c = document.querySelector('canvas');
-      if (c && c.parentElement !== stage) {{
-        stage.appendChild(c);
-        updateTransform();
-      }}
-    }});
-
-    observer.observe(document.body, {{
-      childList: true,
-      subtree: true
-    }});
-  }})();
-  </script>
-</body>
-</html>
-"""
-
-    components.html(p5_html, height=650, scrolling=True)
+            // p5.js 오버라이드
+            const _createCanvas = window.createCanvas;
+            window.createCanvas = function(w, h) {{
+                const c = _createCanvas.call(this, w, h);
+                c.parent('container');
+                return c;
+            }};
+        </script>
+        <script>
+            {code_str}
+        </script>
+    </body>
+    </html>
+    """
+    components.html(p5_html, height=650, scrolling=False)
 
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
