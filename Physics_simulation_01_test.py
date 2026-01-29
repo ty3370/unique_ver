@@ -110,44 +110,25 @@ def render_p5(code):
 <html>
 <head>
 <meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 <style>
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
-  background: #0b1020;
-  color: #e6e8ef;
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-}
-#topbar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 10px 12px;
-  gap: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(10px);
+  background: #f0f0f0;
+  overflow: hidden;
 }
 #fs {
-  appearance: none;
-  border: 1px solid rgba(255,255,255,0.14);
-  background: rgba(255,255,255,0.06);
-  color: #e6e8ef;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 9999;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
   cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
-}
-#fs:hover {
-  transform: translateY(-1px);
-  background: rgba(255,255,255,0.10);
-  border-color: rgba(255,255,255,0.22);
-}
-#fs:active {
-  transform: translateY(0px);
 }
 canvas {
   display: block;
@@ -156,11 +137,7 @@ canvas {
 </head>
 <body>
 
-<div id="topbar">
-  <button id="fs">⛶ Fullscreen</button>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+<button id="fs">Fullscreen</button>
 
 <script>
 __P5_CODE__
@@ -324,7 +301,7 @@ def page_2():
 
         if st.session_state.get("current_code"):
             p5_html = render_p5(st.session_state["current_code"])
-            components.html(p5_html, height=850, scrolling=False)
+            components.html(p5_html, height=650, scrolling=False)
 
             with st.expander("소스 코드 확인"):
                 st.code(st.session_state["current_code"], language="javascript")
