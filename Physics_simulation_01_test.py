@@ -132,9 +132,15 @@ html, body {
   font-size: 12px;
   cursor: pointer;
 }
+:fullscreen,
+:-webkit-full-screen {
+  background: transparent !important;
+}
 canvas {
+  background: transparent !important;
   display: block;
 }
+</style>
 </style>
 </head>
 <body>
