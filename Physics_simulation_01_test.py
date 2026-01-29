@@ -116,6 +116,12 @@ html, body {
   margin: 0;
   padding: 0;
 }
+#fs {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 9999;
+}
 canvas {
   display: block;
 }
@@ -123,10 +129,22 @@ canvas {
 </head>
 <body>
 
+<button id="fs">Fullscreen</button>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 
 <script>
 __P5_CODE__
+</script>
+
+<script>
+document.getElementById("fs").onclick = function () {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+};
 </script>
 
 </body>
@@ -259,10 +277,6 @@ def page_2():
         st.subheader("🖥️ Simulation Preview")
 
         if st.session_state.get("current_code"):
-            p5_html = render_p5(st.session_state["current_code"])
-            components.html(p5_html, height=650, scrolling=True)
-
-
             p5_html = render_p5(st.session_state["current_code"])
             components.html(p5_html, height=650, scrolling=True)
 
