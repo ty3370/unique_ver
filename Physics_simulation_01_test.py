@@ -234,6 +234,10 @@ def page_2():
         st.info("왼쪽 사이드바에서 프로젝트를 선택하거나 새로 생성해 주세요.")
         return
 
+    # 🔑 로딩 상태 초기화
+    if "loading" not in st.session_state:
+        st.session_state["loading"] = False
+
     st.header(f"Project: {st.session_state['current_topic']}")
 
     top = st.container()
@@ -281,78 +285,83 @@ def page_2():
             placeholder = st.empty()
             stage = st.empty()
 
-            with placeholder.container():
-                user_input = st.text_area(
-                    "시뮬레이션 설명",
-                    placeholder="시뮬레이션 내용을 설명해 주세요...",
-                    height=140,
-                    key=input_key,
+            # =========================
+            # 1️⃣ 입력 UI (로딩 아닐 때만)
+            # =========================
+            if not st.session_state["loading"]:
+                with placeholder.container():
+                    user_input = st.text_area(
+                        "시뮬레이션 설명",
+                        placeholder="시뮬레이션 내용을 설명해 주세요...",
+                        height=140,
+                        key=input_key,
+                    )
+
+                    if st.button(
+                        "🤖 AI에게 요청",
+                        key=send_key,
+                        use_container_width=True,
+                        type="primary",
+                    ):
+                        if user_input.strip():
+                            st.session_state["pending_input"] = user_input
+                            st.session_state["loading"] = True
+                            st.rerun()
+                        else:
+                            st.warning("시뮬레이션 설명을 입력해 주세요.")
+
+            # =========================
+            # 2️⃣ 로딩 상태 처리 (다음 rerun)
+            # =========================
+            if st.session_state["loading"]:
+                placeholder.empty()
+                stage.empty()
+                show_stage("🤖 시뮬레이션 코드를 생성 중입니다...")
+
+                user_input = st.session_state.pop("pending_input", "")
+
+                messages.append({"role": "user", "content": user_input})
+
+                model = genai.GenerativeModel(
+                    MODEL,
+                    system_instruction=SYSTEM_PROMPT
                 )
 
-                if st.button(
-                    "🤖 AI에게 요청",
-                    key=send_key,
-                    use_container_width=True,
-                    type="primary",
-                ):
-                    if user_input.strip():
-                        placeholder.empty()
+                history = []
+                for m in messages[:-1]:
+                    role = "model" if m["role"] == "assistant" else "user"
+                    if not history or history[-1]["role"] != role:
+                        history.append({"role": role, "parts": [m["content"]]})
 
-                        stage.empty()
-                        show_stage("🤖 시뮬레이션 코드를 생성 중입니다...")
+                try:
+                    response = model.generate_content(
+                        history + [{"role": "user", "parts": [user_input]}]
+                    )
+                    answer = response.text
 
-                        messages.append(
-                            {"role": "user", "content": user_input}
-                        )
+                    messages.append({"role": "assistant", "content": answer})
 
-                        model = genai.GenerativeModel(
-                            MODEL,
-                            system_instruction=SYSTEM_PROMPT
-                        )
+                    save_chat(
+                        st.session_state["current_topic"],
+                        messages
+                    )
 
-                        history = []
-                        for m in messages[:-1]:
-                            role = "model" if m["role"] == "assistant" else "user"
-                            if not history or history[-1]["role"] != role:
-                                history.append(
-                                    {"role": role, "parts": [m["content"]]}
-                                )
+                    new_snippets = re.findall(
+                        r"\+{5}(.*?)\+{5}",
+                        answer,
+                        re.DOTALL
+                    )
+                    if new_snippets:
+                        st.session_state["current_code"] = new_snippets[-1].strip()
 
-                        try:
-                            response = model.generate_content(
-                                history + [{"role": "user", "parts": [user_input]}]
-                            )
-                            answer = response.text
+                    st.session_state["loading"] = False
+                    stage.empty()
+                    st.rerun()
 
-                            # ✅ 로딩 제거
-                            stage.empty()
-
-                            messages.append(
-                                {"role": "assistant", "content": answer}
-                            )
-
-                            save_chat(
-                                st.session_state["current_topic"],
-                                messages
-                            )
-
-                            new_snippets = re.findall(
-                                r"\+{5}(.*?)\+{5}",
-                                answer,
-                                re.DOTALL
-                            )
-                            if new_snippets:
-                                st.session_state["current_code"] = (
-                                    new_snippets[-1].strip()
-                                )
-
-                            st.rerun()
-
-                        except Exception as e:
-                            stage.empty()
-                            st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
-                    else:
-                        st.warning("시뮬레이션 설명을 입력해 주세요.")
+                except Exception as e:
+                    st.session_state["loading"] = False
+                    stage.empty()
+                    st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
 
             if all_code_snippets:
                 selected_ver = st.selectbox(
