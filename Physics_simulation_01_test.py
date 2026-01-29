@@ -8,22 +8,24 @@ import hashlib
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 
-# 페이지 설정 (가장 상단에 위치해야 합니다)
+# 페이지 설정
 st.set_page_config(layout="wide")
 
 # API 설정
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-MODEL = "gemini-2.5-flash" 
+MODEL = "gemini-2.5-flash"
 
-# 시스템 프롬프트 설정 (Python 문법에 맞게 괄호로 묶어 처리)
+# 시스템 프롬프트 설정
 SYSTEM_PROMPT = (
-    "당신은 물리학 시뮬레이션 생성 도우미 역할을 합니다.\n"
-    "사용자 요청에 따라 p5.js에서 실행할 수 있는 자바스크립트 코드를 생성합니다.\n\n"
-    "[규칙]\n"
-    "1. 코드에 주석은 하나도 넣지 마세요.\n"
-    "2. 코드를 만들 때는 반드시 위아래로 '\\n\\n+++++\\n\\n' 표시를 넣어 코드 구간을 구분하세요.\n"
-    "3. 모든 코드는 반드시 다음과 같은 형식을 엄격히 지켜야 합니다:\n\n"
-    "\\n\\n+++++\\n\\n(p5.js 코드 내용)\\n\\n+++++\\n\\n\n"
+    "당신은 물리학 시뮬레이션 생성 도우미 역할을 합니다."
+    "사용자 요청에 따라 p5.js에서 실행할 수 있는 자바스크립트 코드를 생성합니다."
+    "[규칙]"
+    "1. 코드에 주석은 하나도 넣지 마세요."
+    "2. 코드를 만들 때는 반드시 위아래로 '+++++' 표시를 넣어 코드 구간을 구분하세요."
+    "3. 모든 코드는 반드시 다음과 같은 형식을 엄격히 지켜야 합니다:"
+    "+++++"
+    "(p5.js 코드 내용)"
+    "+++++"
     "이 규칙은 모든 코드 응답에 대해 예외 없이 적용되어야 하며, 어떠한 예외도 두어선 안 됩니다."
 )
 
@@ -54,7 +56,8 @@ def get_user_topics():
     except Exception as e:
         st.error(f"프로젝트 목록을 불러오는 중 오류가 발생했습니다: {e}")
     finally:
-        if db: db.close()
+        if db:
+            db.close()
     return topics
 
 # 특정 토픽의 대화 내역 불러오기
@@ -74,7 +77,8 @@ def load_chat(topic):
         st.error(f"대화 내역을 불러오는 중 오류가 발생했습니다: {e}")
         return []
     finally:
-        if db: db.close()
+        if db:
+            db.close()
 
 # 대화 내역 저장하기
 def save_chat(topic, chat):
@@ -86,16 +90,24 @@ def save_chat(topic, chat):
         db = connect_to_db()
         with db.cursor() as cursor:
             sql = """
-            INSERT INTO qna_unique (number, name, code, topic, chat, time) 
-            VALUES (%s, %s, %s, %s, %s, %s) 
+            INSERT INTO qna_unique (number, name, code, topic, chat, time)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE chat = VALUES(chat), time = VALUES(time)
             """
-            val = (number, name, code, topic, json.dumps(chat, ensure_ascii=False), datetime.now())
+            val = (
+                number,
+                name,
+                code,
+                topic,
+                json.dumps(chat, ensure_ascii=False),
+                datetime.now()
+            )
             cursor.execute(sql, val)
     except Exception as e:
         st.error(f"대화 저장 중 오류가 발생했습니다: {e}")
     finally:
-        if db: db.close()
+        if db:
+            db.close()
 
 # p5.js 실시간 실행기
 def render_p5(code):
@@ -118,18 +130,8 @@ def render_p5(code):
         </style>
     </head>
     <body>
-        <div id="sketch"></div>
-
         <script>
-        new p5(function(p) {{
-            {code_str}
-            
-            if (!p.setup) {{
-                p.setup = function() {{
-                    p.createCanvas(400, 400);
-                }}
-            }}
-        }}, document.getElementById("sketch"));
+        {code_str}
         </script>
     </body>
     </html>
@@ -137,8 +139,7 @@ def render_p5(code):
 
     components.html(p5_html, height=500)
 
-
-# 1페이지: 정보 입력
+# 1페이지
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
     st.subheader("학습자 정보를 입력하세요")
@@ -149,30 +150,35 @@ def page_1():
         value=st.session_state.get("user_code", ""),
         help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요."
     )
-    st.markdown("""
-    > 🌟 **“생각하건대 현재의 고난은 장차 우리에게 나타날 영광과 비교할 수 없도다”** > — 로마서 8장 18절
-    """)
-    
+    st.markdown(
+        "> 🌟 **“생각하건대 현재의 고난은 장차 우리에게 나타날 영광과 비교할 수 없도다”** — 로마서 8장 18절"
+    )
+
     if st.button("접속하기"):
-        if all([st.session_state["user_number"], st.session_state["user_name"], st.session_state["user_code"]]):
+        if all(
+            [
+                st.session_state["user_number"],
+                st.session_state["user_name"],
+                st.session_state["user_code"],
+            ]
+        ):
             st.session_state["step"] = 2
             st.rerun()
         else:
             st.error("모든 정보를 입력해주세요.")
 
-# 2페이지: 메인 워크스페이스 (채팅 및 시뮬레이션)
+# 2페이지
 def page_2():
-    # 사이드바: 프로젝트 관리
     with st.sidebar:
         st.title("📂 프로젝트 관리")
         existing_topics = get_user_topics()
         mode = st.radio("작업 선택", ["기존 프로젝트 불러오기", "새 프로젝트 만들기"])
-        
+
         if mode == "기존 프로젝트 불러오기" and existing_topics:
             current_topic = st.selectbox("프로젝트 선택", existing_topics)
         else:
             current_topic = st.text_input("새 프로젝트 제목 입력")
-            
+
         if st.button("프로젝트 시작/변경"):
             if current_topic:
                 st.session_state["current_topic"] = current_topic
@@ -189,59 +195,56 @@ def page_2():
     st.header(f"Project: {st.session_state['current_topic']}")
     col_chat, col_preview = st.columns([1, 1])
 
-    # 좌측: AI 채팅 화면
     with col_chat:
         st.subheader("💬 AI Designer")
         chat_container = st.container(height=500)
-        
+
         messages = st.session_state.get("messages", [])
         all_code_snippets = []
 
         for m in messages:
             with chat_container.chat_message(m["role"]):
-                # [수정] 채팅창에서는 코드 블록만 제거하고 상태 메시지만 출력
-                display_content = re.sub(r"\+{5}.*?\+{5}", "\n\n> 💡 **시뮬레이션 코드가 생성되었습니다.**\n\n", m["content"], flags=re.DOTALL)
+                display_content = re.sub(
+                    r"\+{5}.*?\+{5}",
+                    "> 💡 **시뮬레이션 코드가 생성되었습니다.**",
+                    m["content"],
+                    flags=re.DOTALL,
+                )
                 st.markdown(display_content)
-                
-                # 내부적으로 코드 스니펫 추출 로직은 그대로 유지
+
                 snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
                 for snippet in snippets:
                     all_code_snippets.append(snippet.strip())
 
-        # 코드 버전 선택 실행
         if all_code_snippets:
             st.divider()
             selected_ver = st.selectbox(
-                "실행할 코드 버전 선택", 
+                "실행할 코드 버전 선택",
                 range(len(all_code_snippets)),
-                format_func=lambda x: f"Code Version {x+1}"
+                format_func=lambda x: f"Code Version {x+1}",
             )
-            # [수정] 버튼 클릭 시 session_state 업데이트 후 st.rerun()을 명시하여 메트릭 충돌 방지
             if st.button("▶️ 선택한 코드 실행"):
                 st.session_state["current_code"] = all_code_snippets[selected_ver]
                 st.rerun()
 
-        # 사용자 입력
         if user_input := st.chat_input("시뮬레이션 내용을 설명해 주세요..."):
             messages.append({"role": "user", "content": user_input})
-            
             model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
-            
-            # 제미나이 히스토리 규칙 준수
+
             history = []
             for m in messages[:-1]:
                 role = "model" if m["role"] == "assistant" else "user"
                 if not history or history[-1]["role"] != role:
                     history.append({"role": role, "parts": [m["content"]]})
-            
+
             try:
-                response = model.generate_content(history + [{"role": "user", "parts": [user_input]}])
+                response = model.generate_content(
+                    history + [{"role": "user", "parts": [user_input]}]
+                )
                 answer = response.text
                 messages.append({"role": "assistant", "content": answer})
-                
                 save_chat(st.session_state["current_topic"], messages)
-                
-                # 최신 코드 자동 로드
+
                 new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
                 if new_snippets:
                     st.session_state["current_code"] = new_snippets[-1].strip()
@@ -249,18 +252,16 @@ def page_2():
             except Exception as e:
                 st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
 
-    # 우측: p5.js 실행 화면
     with col_preview:
         st.subheader("🖥️ Simulation Preview")
         if st.session_state.get("current_code"):
-            # 수정된 안전 렌더링 함수 호출
             render_p5(st.session_state["current_code"])
             with st.expander("소스 코드 확인"):
                 st.code(st.session_state["current_code"], language="javascript")
         else:
             st.info("코드가 생성되면 이곳에 시뮬레이션이 나타납니다.")
 
-# 페이지 라우팅 제어
+# 페이지 라우팅
 if "step" not in st.session_state:
     st.session_state["step"] = 1
 
