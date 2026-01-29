@@ -161,8 +161,6 @@ except Exception:
     st.error("대화 데이터 오류")
     st.stop()
 
-st.subheader("대화 내용")
-
 chat_table = []
 
 for msg in chat:
@@ -180,18 +178,33 @@ for msg in chat:
         else:
             text = clean_inline_latex(part)
             if text:
-                st.write(f"{role}: {text}")
                 df_texts.append(text)
 
     chat_table.append({
         "말한 사람": name if role == "학생" else "AI",
-        "내용": " ".join(df_texts),
-        "토픽": topic
+        "내용": " ".join(df_texts)
     })
 
 st.subheader("복사용 표")
 df = pd.DataFrame(chat_table)
 st.markdown(df.to_html(index=False), unsafe_allow_html=True)
+
+st.subheader("대화 내용")
+
+for msg in chat:
+    role = "학생" if msg["role"] == "user" else "AI"
+    content = msg["content"]
+
+    parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
+
+    for part in parts:
+        if part.startswith("+++++") and part.endswith("+++++"):
+            code_block = part[5:-5].strip()
+            st.code(code_block, language="javascript")
+        else:
+            text = clean_inline_latex(part)
+            if text:
+                st.write(f"{role}: {text}")
 
 if "confirm_delete" not in st.session_state:
     st.session_state.confirm_delete = False
