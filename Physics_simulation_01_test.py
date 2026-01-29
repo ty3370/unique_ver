@@ -168,15 +168,6 @@ def render_p5(code):
                     'translate(' + offsetX + 'px,' + offsetY + 'px)';
             }}
 
-            zoomInput.oninput = function() {{
-                scale = parseFloat(this.value);
-                const c = document.querySelector('canvas');
-                if (c) {{
-                    c.style.transformOrigin = 'top left';
-                    c.style.transform = 'scale(' + scale + ')';
-                }}
-            }};
-
             stage.addEventListener('mousedown', e => {{
                 dragging = true;
                 startX = e.clientX - offsetX;
