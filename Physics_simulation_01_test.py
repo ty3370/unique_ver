@@ -101,19 +101,27 @@ def save_chat(topic, chat):
 def render_p5(code):
     if not code:
         return
-    
-    # 코드를 문자열로 확정하고 해시 생성 (키 값 중복 방지)
+
     code_str = str(code).strip()
-    code_hash = hashlib.md5(code_str.encode('utf-8')).hexdigest()
-    
+
     p5_html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
         <style>
-            body {{ margin: 0; background: #f0f0f0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }}
-            canvas {{ display: block !important; }}
+            body {{
+                margin: 0;
+                background: #f0f0f0;
+                overflow: hidden;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+            }}
+            canvas {{
+                display: block !important;
+            }}
         </style>
     </head>
     <body>
@@ -121,8 +129,12 @@ def render_p5(code):
     </body>
     </html>
     """
-    # [수정] Python 3.13 호환성을 위해 key 형식을 가장 단순한 문자열로 보장
-    components.html(p5_html, height=500, key=f"p5_v2_{str(code_hash)}")
+
+    components.html(
+        p5_html,
+        height=500,
+        key="p5_preview"
+    )
 
 # 1페이지: 정보 입력
 def page_1():
