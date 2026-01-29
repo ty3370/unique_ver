@@ -118,7 +118,7 @@ html, body {
   margin: 0;
   padding: 0;
   background: #f0f0f0;
-  overflow: hidden;
+  overflow: auto;
 }
 #fs {
   position: fixed;
