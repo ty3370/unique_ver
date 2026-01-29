@@ -132,8 +132,7 @@ def render_p5(code):
 
     components.html(
         p5_html,
-        height=500,
-        key="p5_preview"
+        height=500
     )
 
 # 1페이지: 정보 입력
