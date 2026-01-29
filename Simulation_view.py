@@ -5,6 +5,25 @@ import re
 import pandas as pd
 
 # ======================
+# LaTeX / 텍스트 정리
+# ======================
+def clean_inline_latex(text):
+    text = re.sub(r"\\text\{(.*?)\}", r"\1", text)
+    text = re.sub(r"\\frac\{(.*?)\}\{(.*?)\}", r"\1/\2", text)
+    text = re.sub(r"\\sqrt\{(.*?)\}", r"√\1", text)
+    text = re.sub(r"\\rightarrow|\\to", "→", text)
+    text = re.sub(r"\\times", "×", text)
+    text = re.sub(r"\\div", "÷", text)
+    text = re.sub(r"\\pm", "±", text)
+    text = re.sub(r"\\leq", "≤", text)
+    text = re.sub(r"\\geq", "≥", text)
+    text = re.sub(r"\\neq", "≠", text)
+    text = re.sub(r"\\approx", "≈", text)
+    text = re.sub(r"\\infty", "∞", text)
+    text = re.sub(r"\\", "", text)
+    return text
+
+# ======================
 # DB 연결
 # ======================
 def connect_to_db():
@@ -85,7 +104,7 @@ def delete_chat(number, name, topic):
 # ======================
 # 기본 UI
 # ======================
-st.title("📊 학생 AI 대화 이력 조회 (qna_unique)")
+st.title("학생 AI 대화 이력 조회(개발자용)")
 
 password = st.text_input("관리자 비밀번호", type="password")
 if password != st.secrets["PASSWORD"]:
@@ -123,7 +142,7 @@ except json.JSONDecodeError:
     st.error("대화 데이터 JSON 오류")
     st.stop()
 
-st.subheader("💬 대화 내용")
+st.subheader("대화 내용")
 
 chat_table = []
 
@@ -154,7 +173,7 @@ for msg in chat:
 # ======================
 # DF 형태 출력 (첨부파일 동일)
 # ======================
-st.subheader("📋 복사용 표")
+st.subheader("복사용 표")
 df = pd.DataFrame(chat_table)
 st.markdown(df.to_html(index=False), unsafe_allow_html=True)
 
