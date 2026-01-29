@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pymysql
 import json
 from datetime import datetime
@@ -7,6 +6,7 @@ import google.generativeai as genai
 import re
 import hashlib
 from zoneinfo import ZoneInfo
+import streamlit.components.v1 as components
 
 st.set_page_config(layout="wide")
 
@@ -106,168 +106,136 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-    html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    if not code:
+        return
 
-  <style>
-    body {{
-      margin: 0;
-      overflow: hidden;
-      background: #111;
-      color: #eee;
-      font-family: sans-serif;
-    }}
-    #ui {{
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      z-index: 10;
-      background: rgba(30,30,30,0.9);
-      padding: 10px;
-      border-radius: 6px;
-    }}
-    #container {{
-      width: 100vw;
-      height: 100vh;
-    }}
-    canvas {{
-      display: block;
-    }}
-  </style>
-</head>
+    code_str = str(code).strip()
 
-<body>
+    p5_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+        <style>
+            body {{
+                margin: 0;
+                background: #f0f0f0;
+                overflow: hidden;
+            }}
+            #controls {{
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 1000;
+                background: rgba(255,255,255,0.9);
+                padding: 6px;
+                border-radius: 6px;
+                font-size: 12px;
+            }}
+            #stage {{
+                position: absolute;
+                top: 0;
+                left: 0;
+                transform-origin: top left;
+                cursor: grab;
+            }}
+            #container {{
+                position: relative;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="controls">
+            Zoom
+            <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1">
+            <button id="fs">Fullscreen</button>
+        </div>
 
-<div id="ui">
-  <div>
-    Zoom
-    <input type="range" min="0.2" max="5" step="0.01" value="1"
-      oninput="setZoomFromSlider(parseFloat(this.value))">
-  </div>
-  <button onclick="toggleFullscreen()">Fullscreen</button>
-</div>
+        <div id="stage">
+            <div id="container"></div>
+        </div>
 
-<div id="container"></div>
+        <!-- Pan & Zoom (stage 하나에만 transform 적용) -->
+        <script>
+            let offsetX = 0;
+            let offsetY = 0;
+            let dragging = false;
+            let startX = 0;
+            let startY = 0;
+            let scale = 1;
 
-<script>
-/* ===============================
-   에러 표시
-   =============================== */
-window.onerror = function(msg, src, line, col) {{
-  const pre = document.createElement('pre');
-  pre.style.color = 'red';
-  pre.textContent = msg + '\\n' + src + ':' + line;
-  document.body.appendChild(pre);
-}};
+            const stage = document.getElementById('stage');
+            const zoomInput = document.getElementById('zoom');
 
-/* ===============================
-   p5 createCanvas → container
-   =============================== */
-(function () {{
-  const orig = p5.prototype.createCanvas;
-  p5.prototype.createCanvas = function(w, h, renderer) {{
-    const c = orig.call(this, w, h, renderer);
-    try {{ c.parent('container'); }} catch(e) {{}}
-    return c;
-  }};
-}})();
+            function updateTransform() {{
+                stage.style.transform =
+                    'translate(' + offsetX + 'px,' + offsetY + 'px) scale(' + scale + ')';
+            }}
 
-/* ===============================
-   Camera variables
-   =============================== */
-let zoom = 1;
-let camX = 0;
-let camY = 0;
+            updateTransform();
 
-let isDragging = false;
-let lastMouseX = 0;
-let lastMouseY = 0;
+            zoomInput.oninput = function() {{
+                scale = parseFloat(this.value);
+                updateTransform();
+            }};
 
-/* ===============================
-   Zoom from slider (center based)
-   =============================== */
-function setZoomFromSlider(value) {{
-  let cx = width / 2;
-  let cy = height / 2;
+            stage.addEventListener('mousedown', e => {{
+                dragging = true;
+                stage.style.cursor = 'grabbing';
+                startX = e.clientX - offsetX;
+                startY = e.clientY - offsetY;
+            }});
 
-  let wx = (cx - camX) / zoom;
-  let wy = (cy - camY) / zoom;
+            window.addEventListener('mousemove', e => {{
+                if (!dragging) return;
+                offsetX = e.clientX - startX;
+                offsetY = e.clientY - startY;
+                updateTransform();
+            }});
 
-  zoom = value;
+            window.addEventListener('mouseup', () => {{
+                dragging = false;
+                stage.style.cursor = 'grab';
+            }});
 
-  camX = cx - wx * zoom;
-  camY = cy - wy * zoom;
-}}
+            document.getElementById('fs').onclick = () => {{
+                if (!document.fullscreenElement) {{
+                    document.documentElement.requestFullscreen();
+                }} else {{
+                    document.exitFullscreen();
+                }}
+            }};
+        </script>
 
-/* ===============================
-   Fullscreen
-   =============================== */
-function toggleFullscreen() {{
-  if (!document.fullscreenElement) {{
-    document.documentElement.requestFullscreen();
-  }} else {{
-    document.exitFullscreen();
-  }}
-}}
+        <!-- p5 canvas를 생성 후 container로 안전하게 이동 -->
+        <script>
+            function attachCanvasToContainer() {{
+                const container = document.getElementById('container');
+                const c = document.querySelector('canvas');
+                if (container && c && c.parentElement !== container) {{
+                    container.appendChild(c);
+                }}
+            }}
 
-document.addEventListener('fullscreenchange', () => {{
-  if (window.resizeCanvas) {{
-    resizeCanvas(window.innerWidth, window.innerHeight);
-  }}
-}});
+            let tries = 0;
+            const t = setInterval(() => {{
+                attachCanvasToContainer();
+                tries++;
+                if (document.querySelector('#container canvas') || tries > 40) {{
+                    clearInterval(t);
+                }}
+            }}, 50);
+        </script>
 
-/* ===============================
-   Mouse controls
-   =============================== */
-function mousePressed() {{
-  isDragging = true;
-  lastMouseX = mouseX;
-  lastMouseY = mouseY;
-}}
+        <!-- 사용자 p5 코드 -->
+        <script>
+            {code_str}
+        </script>
+    </body>
+    </html>
+    """
 
-function mouseReleased() {{
-  isDragging = false;
-}}
-
-function mouseDragged() {{
-  if (!isDragging) return;
-
-  camX += mouseX - lastMouseX;
-  camY += mouseY - lastMouseY;
-
-  lastMouseX = mouseX;
-  lastMouseY = mouseY;
-}}
-
-function mouseWheel(event) {{
-  let factor = 1 - event.delta * 0.001;
-  let newZoom = constrain(zoom * factor, 0.2, 5);
-
-  let wx = (mouseX - camX) / zoom;
-  let wy = (mouseY - camY) / zoom;
-
-  zoom = newZoom;
-
-  camX = mouseX - wx * zoom;
-  camY = mouseY - wy * zoom;
-
-  return false;
-}}
-
-/* ===============================
-   User p5 code
-   =============================== */
-{code}
-</script>
-
-</body>
-</html>
-"""
-    components.html(html, height=800)
+    components.html(p5_html, height=650, scrolling=True)
 
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
@@ -338,7 +306,7 @@ def page_2():
                 def replace_code_block(match):
                     nonlocal code_counter
                     code_counter += 1
-                    return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료** 💡"
+                    return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료**"
 
                 display_content = re.sub(
                     r"\+{5}.*?\+{5}",
