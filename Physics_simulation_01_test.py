@@ -12,7 +12,7 @@ st.set_page_config(layout="wide")
 
 # API 설정
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
-MODEL = "gemini-3-flash" 
+MODEL = "gemini-2.5-flash" 
 
 # 시스템 프롬프트 설정 (Python 문법에 맞게 괄호로 묶어 처리)
 SYSTEM_PROMPT = (
