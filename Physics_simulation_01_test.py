@@ -8,14 +8,11 @@ import hashlib
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 
-# 페이지 설정
 st.set_page_config(layout="wide")
 
-# API 설정
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 MODEL = "gemini-2.5-flash"
 
-# 시스템 프롬프트 설정
 SYSTEM_PROMPT = (
     "당신은 고등학생의 물리학 시뮬레이션 생성 도우미 역할을 합니다."
     "사용자 요청에 따라 p5.js에서 실행할 수 있는 자바스크립트 코드를 생성합니다."
@@ -30,7 +27,6 @@ SYSTEM_PROMPT = (
     "이 규칙은 모든 코드 응답에 대해 예외 없이 적용되어야 하며, 어떠한 예외도 두어선 안 됩니다."
 )
 
-# 데이터베이스 연결 함수
 def connect_to_db():
     return pymysql.connect(
         host=st.secrets["DB_HOST"],
@@ -41,7 +37,6 @@ def connect_to_db():
         autocommit=True
     )
 
-# 유저 토픽 목록 불러오기
 def get_user_topics():
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -61,7 +56,6 @@ def get_user_topics():
             db.close()
     return topics
 
-# 특정 토픽의 대화 내역 불러오기
 def load_chat(topic):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -81,7 +75,6 @@ def load_chat(topic):
         if db:
             db.close()
 
-# 대화 내역 저장하기
 def save_chat(topic, chat):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -110,14 +103,12 @@ def save_chat(topic, chat):
         if db:
             db.close()
 
-# p5.js 실시간 실행기
 def render_p5(code):
     if not code:
         return
 
     code_str = str(code).strip()
 
-    # ★ 변경: 확대/축소(Zoom) 기능 추가
     p5_html = f"""
     <!DOCTYPE html>
     <html>
@@ -149,18 +140,24 @@ def render_p5(code):
             <input type="range" min="0.5" max="2" step="0.1" value="1"
                    oninput="document.getElementById('container').style.transform = 'scale(' + this.value + ')';">
         </div>
-        <div id="container">
-            <script>
+        <div id="container"></div>
+        <script>
+            const _createCanvas = window.createCanvas;
+            window.createCanvas = function() {{
+                const c = _createCanvas.apply(this, arguments);
+                c.parent('container');
+                return c;
+            }};
+        </script>
+        <script>
             {code_str}
-            </script>
-        </div>
+        </script>
     </body>
     </html>
     """
 
     components.html(p5_html, height=650, scrolling=True)
 
-# 1페이지
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
     st.subheader("학습자 정보를 입력하세요")
@@ -188,7 +185,6 @@ def page_1():
         else:
             st.error("모든 정보를 입력해주세요.")
 
-# 2페이지
 def page_2():
     with st.sidebar:
         st.title("📂 프로젝트 관리")
@@ -223,7 +219,7 @@ def page_2():
         messages = st.session_state.get("messages", [])
         all_code_snippets = []
 
-        code_counter = 0  # ★ 변경: 코드 버전 카운터
+        code_counter = 0
 
         for m in messages:
             with chat_container.chat_message(m["role"]):
@@ -291,7 +287,6 @@ def page_2():
         else:
             st.info("코드가 생성되면 이곳에 시뮬레이션이 나타납니다.")
 
-# 페이지 라우팅
 if "step" not in st.session_state:
     st.session_state["step"] = 1
 
