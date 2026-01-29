@@ -106,83 +106,127 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-    if not code:
-        return
+    return f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>p5 Simulation</title>
 
-    code_str = str(code).strip()
+<style>
+html, body {{
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #111;
+}}
 
-    p5_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
-        <style>
-            body {{ margin: 0; background: #f0f0f0; overflow: hidden; }}
-            #controls {{
-                position: fixed; top: 10px; right: 10px; z-index: 1000;
-                background: rgba(255,255,255,0.9); padding: 8px; border-radius: 6px;
-            }}
-            /* 캔버스가 담길 컨테이너의 크기를 명시적으로 설정 */
-            #container {{ width: 100vw; height: 100vh; display: block; }}
-        </style>
-    </head>
-    <body>
-        <div id="controls">
-            Zoom: <input id="zoom" type="range" min="0.5" max="3" step="0.1" value="1">
-            <button id="fs">Fullscreen</button>
-        </div>
-        <div id="container"></div>
+#ui {{
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: rgba(0,0,0,0.6);
+  color: #eee;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-family: sans-serif;
+}}
 
-        <script>
-            // p5.js가 참조할 전역 변수
-            window.globalScale = 1.0;
-            window.globalOffsetX = 0;
-            window.globalOffsetY = 0;
+#stage {{
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}}
 
-            const zoomInput = document.getElementById('zoom');
-            zoomInput.oninput = function() {{
-                window.globalScale = parseFloat(this.value); // CSS가 아닌 값을 전달
-            }};
+canvas {{
+  display: block;
+}}
+</style>
+</head>
 
-            // 드래그 기능으로 offset 업데이트
-            let isDragging = false;
-            let startX, startY;
+<body>
 
-            window.addEventListener('mousedown', e => {{
-                if(e.target.tagName === 'CANVAS') {{
-                    isDragging = true;
-                    startX = e.clientX - window.globalOffsetX;
-                    startY = e.clientY - window.globalOffsetY;
-                }}
-            }});
-            window.addEventListener('mousemove', e => {{
-                if (isDragging) {{
-                    window.globalOffsetX = e.clientX - startX;
-                    window.globalOffsetY = e.clientY - startY;
-                }}
-            }});
-            window.addEventListener('mouseup', () => isDragging = false);
+<div id="ui">
+  Zoom:
+  <input id="zoom" type="range" min="0.2" max="3" step="0.01" value="1">
+  <button id="fs">Fullscreen</button>
+</div>
 
-            document.getElementById('fs').onclick = () => {{
-                if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-                else document.exitFullscreen();
-            }};
+<div id="stage"></div>
 
-            // p5.js 오버라이드
-            const _createCanvas = window.createCanvas;
-            window.createCanvas = function(w, h) {{
-                const c = _createCanvas.call(this, w, h);
-                c.parent('container');
-                return c;
-            }};
-        </script>
-        <script>
-            {code_str}
-        </script>
-    </body>
-    </html>
-    """
-    components.html(p5_html, height=650, scrolling=False)
+<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+
+<script>
+{code}
+</script>
+
+<script>
+(() => {{
+  let offsetX = 0;
+  let offsetY = 0;
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let zoomScale = 1;
+
+  const stage = document.getElementById('stage');
+  const zoomInput = document.getElementById('zoom');
+
+  function applyTransform() {{
+    stage.style.transform =
+      `translate(${{offsetX}}px, ${{offsetY}}px) scale(${{zoomScale}})`;
+  }}
+
+  zoomInput.addEventListener('input', () => {{
+    zoomScale = parseFloat(zoomInput.value);
+    applyTransform();
+  }});
+
+  stage.addEventListener('mousedown', e => {{
+    dragging = true;
+    startX = e.clientX - offsetX;
+    startY = e.clientY - offsetY;
+  }});
+
+  window.addEventListener('mousemove', e => {{
+    if (!dragging) return;
+    offsetX = e.clientX - startX;
+    offsetY = e.clientY - startY;
+    applyTransform();
+  }});
+
+  window.addEventListener('mouseup', () => {{
+    dragging = false;
+  }});
+
+  document.getElementById('fs').addEventListener('click', () => {{
+    if (!document.fullscreenElement) {{
+      document.documentElement.requestFullscreen();
+    }} else {{
+      document.exitFullscreen();
+    }}
+  }});
+
+  const observer = new MutationObserver(() => {{
+    const canvas = document.querySelector('canvas');
+    if (canvas && canvas.parentElement !== stage) {{
+      stage.appendChild(canvas);
+      applyTransform();
+    }}
+  }});
+
+  observer.observe(document.body, {{
+    childList: true,
+    subtree: true
+  }});
+})();
+</script>
+
+</body>
+</html>
+"""
 
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
@@ -244,7 +288,6 @@ def page_2():
 
         messages = st.session_state.get("messages", [])
         all_code_snippets = []
-
         code_counter = 0
 
         for m in messages:
@@ -300,14 +343,19 @@ def page_2():
                 new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
                 if new_snippets:
                     st.session_state["current_code"] = new_snippets[-1].strip()
+
                 st.rerun()
+
             except Exception as e:
                 st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
 
     with col_preview:
         st.subheader("🖥️ Simulation Preview")
+
         if st.session_state.get("current_code"):
-            render_p5(st.session_state["current_code"])
+            p5_html = render_p5(st.session_state["current_code"])
+            components.html(p5_html, height=650, scrolling=True)
+
             with st.expander("소스 코드 확인"):
                 st.code(st.session_state["current_code"], language="javascript")
         else:
