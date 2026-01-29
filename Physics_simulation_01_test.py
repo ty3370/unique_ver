@@ -1,3 +1,5 @@
+# 깃허브 unique_ver 리포지토리 사용
+
 import streamlit as st
 import pymysql
 import json
@@ -158,6 +160,29 @@ document.getElementById("fs").onclick = function () {
 """
     return html.replace("__P5_CODE__", code)
 
+def show_stage(message):
+    st.markdown(f"""
+    <div style='display: flex; align-items: center; font-size: 18px;'>
+        <div class="loader" style="
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        "></div>
+        <div>{message}</div>
+    </div>
+
+    <style>
+    @keyframes spin {{
+        0% {{ transform: rotate(0deg); }}
+        100% {{ transform: rotate(360deg); }}
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
     st.subheader("학습자 정보를 입력하세요")
@@ -249,12 +274,12 @@ def page_2():
         with control_col:
             st.markdown("#### ✏️ 입력 & 실행")
 
-            # 🔑 메시지 수 기반 key → 입력 초기화 & 연타 방지
             msg_len = len(messages)
             input_key = f"prompt_area_{msg_len}"
             send_key = f"send_btn_{msg_len}"
 
             placeholder = st.empty()
+            stage = st.empty()
 
             with placeholder.container():
                 user_input = st.text_area(
@@ -271,8 +296,10 @@ def page_2():
                     type="primary",
                 ):
                     if user_input.strip():
-                        # ⛔ 입력창 & 버튼 즉시 제거 (연타 방지)
                         placeholder.empty()
+
+                        stage.empty()
+                        show_stage("🤖 시뮬레이션 코드를 생성 중입니다...")
 
                         messages.append(
                             {"role": "user", "content": user_input}
@@ -296,6 +323,10 @@ def page_2():
                                 history + [{"role": "user", "parts": [user_input]}]
                             )
                             answer = response.text
+
+                            # ✅ 로딩 제거
+                            stage.empty()
+
                             messages.append(
                                 {"role": "assistant", "content": answer}
                             )
@@ -318,6 +349,7 @@ def page_2():
                             st.rerun()
 
                         except Exception as e:
+                            stage.empty()
                             st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
                     else:
                         st.warning("시뮬레이션 설명을 입력해 주세요.")
