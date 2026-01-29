@@ -10,7 +10,10 @@ import hashlib
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+    page_title="🚀 물리학 시뮬레이션 제작 AI",
+    layout="wide"
+)
 
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 MODEL = "gemini-2.5-flash"
