@@ -1,3 +1,5 @@
+# 깃허브 unique_ver 리포지토리 사용
+
 import streamlit as st
 import pymysql
 import json
@@ -115,16 +117,8 @@ def render_p5(code):
 html, body {
   margin: 0;
   padding: 0;
-  height: 100%;
-  background: transparent;
-  overflow: hidden;
-}
-#canvas-scroll {
-  height: 100%;
-  overflow-y: auto;
-}
-canvas {
-  display: block;
+  background: #f0f0f0;
+  overflow: auto;
 }
 #fs {
   position: fixed;
@@ -138,22 +132,14 @@ canvas {
   font-size: 12px;
   cursor: pointer;
 }
+canvas {
+  display: block;
+}
 </style>
 </head>
 <body>
 
 <button id="fs">Fullscreen</button>
-
-<div id="canvas-scroll"></div>
-
-<script>
-const _createCanvas = window.createCanvas;
-window.createCanvas = function(w, h) {
-  const c = _createCanvas(w, h);
-  document.getElementById("canvas-scroll").appendChild(c.canvas);
-  return c;
-};
-</script>
 
 <script>
 __P5_CODE__
@@ -248,6 +234,7 @@ def page_2():
         st.info("왼쪽 사이드바에서 프로젝트를 선택하거나 새로 생성해 주세요.")
         return
 
+    # 🔑 로딩 상태 초기화
     if "loading" not in st.session_state:
         st.session_state["loading"] = False
 
@@ -298,6 +285,9 @@ def page_2():
             placeholder = st.empty()
             stage = st.empty()
 
+            # =========================
+            # 1️⃣ 입력 UI (로딩 아닐 때만)
+            # =========================
             if not st.session_state["loading"]:
                 with placeholder.container():
                     user_input = st.text_area(
@@ -397,7 +387,7 @@ def page_2():
             components.html(
                 p5_html,
                 height=650,
-                scrolling=False
+                scrolling=True
             )
 
             with st.expander("소스 코드 확인"):
