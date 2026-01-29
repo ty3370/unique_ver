@@ -265,7 +265,7 @@ def page_2():
                     def replace_code_block(match):
                         nonlocal code_counter
                         code_counter += 1
-                        return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료** 💡"
+                        return f"> **💡 시뮬레이션 코드 [Code Version {code_counter}] 생성 완료 💡**"
 
                     display_content = re.sub(
                         r"\+{5}.*?\+{5}",
