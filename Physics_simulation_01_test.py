@@ -97,15 +97,14 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# p5.js 실시간 실행기 (안정적인 Key 생성 버전)
+# p5.js 실시간 실행기 (TypeError 및 회색 화면 해결 버전)
 def render_p5(code):
     if not code:
         return
     
+    # 코드를 문자열로 확정하고 해시 생성 (키 값 중복 방지)
     code_str = str(code).strip()
-    # 해시를 통해 코드가 같으면 동일한 키를, 다르면 새로운 키를 부여하여 충돌 방지
     code_hash = hashlib.md5(code_str.encode('utf-8')).hexdigest()
-    unique_key = f"p5_fixed_{code_hash}"
     
     p5_html = f"""
     <!DOCTYPE html>
@@ -122,7 +121,8 @@ def render_p5(code):
     </body>
     </html>
     """
-    components.html(p5_html, height=500, key=unique_key)
+    # [수정] Python 3.13 호환성을 위해 key 형식을 가장 단순한 문자열로 보장
+    components.html(p5_html, height=500, key=f"p5_v2_{str(code_hash)}")
 
 # 1페이지: 정보 입력
 def page_1():
@@ -202,9 +202,10 @@ def page_2():
                 range(len(all_code_snippets)),
                 format_func=lambda x: f"Code Version {x+1}"
             )
+            # [수정] 버튼 클릭 시 session_state 업데이트 후 st.rerun()을 명시하여 메트릭 충돌 방지
             if st.button("▶️ 선택한 코드 실행"):
                 st.session_state["current_code"] = all_code_snippets[selected_ver]
-                st.rerun() # [중요] 선택 실행 시에도 리런을 호출하여 컴포넌트 오류 방지
+                st.rerun()
 
         # 사용자 입력
         if user_input := st.chat_input("시뮬레이션 내용을 설명해 주세요..."):
