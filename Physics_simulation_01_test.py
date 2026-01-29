@@ -14,7 +14,7 @@ st.set_page_config(layout="wide")
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 MODEL = "gemini-1.5-flash" 
 
-# 시스템 프롬프트 설정
+# 시스템 프롬프트 설정 (Python 문법에 맞게 괄호로 묶어 처리)
 SYSTEM_PROMPT = (
     "당신은 물리학 시뮬레이션 생성 도우미 역할을 합니다.\n"
     "사용자 요청에 따라 p5.js에서 실행할 수 있는 자바스크립트 코드를 생성합니다.\n\n"
@@ -37,54 +37,64 @@ def connect_to_db():
         autocommit=True
     )
 
-# 유저 토픽 목록 불러오기
+# 유저 토픽 목록 불러오기 (DB 연결 누수 및 에러 로깅 수정)
 def get_user_topics():
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
     code = st.session_state.get("user_code", "").strip()
     topics = []
+    db = None
     try:
         db = connect_to_db()
-        cursor = db.cursor()
-        sql = "SELECT DISTINCT topic FROM qna_unique WHERE number = %s AND name = %s AND code = %s"
-        cursor.execute(sql, (number, name, code))
-        topics = [row[0] for row in cursor.fetchall()]
-        db.close()
-    except: pass
+        with db.cursor() as cursor:
+            sql = "SELECT DISTINCT topic FROM qna_unique WHERE number = %s AND name = %s AND code = %s"
+            cursor.execute(sql, (number, name, code))
+            topics = [row[0] for row in cursor.fetchall()]
+    except Exception as e:
+        st.error(f"프로젝트 목록을 불러오는 중 오류가 발생했습니다: {e}")
+    finally:
+        if db: db.close()
     return topics
 
-# 특정 토픽의 대화 내역 불러오기
+# 특정 토픽의 대화 내역 불러오기 (DB 연결 누수 및 에러 로깅 수정)
 def load_chat(topic):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
     code = st.session_state.get("user_code", "").strip()
+    db = None
     try:
         db = connect_to_db()
-        cursor = db.cursor()
-        sql = "SELECT chat FROM qna_unique WHERE number = %s AND name = %s AND code = %s AND topic = %s"
-        cursor.execute(sql, (number, name, code, topic))
-        result = cursor.fetchone()
-        db.close()
-        return json.loads(result[0]) if result else []
-    except: return []
+        with db.cursor() as cursor:
+            sql = "SELECT chat FROM qna_unique WHERE number = %s AND name = %s AND code = %s AND topic = %s"
+            cursor.execute(sql, (number, name, code, topic))
+            result = cursor.fetchone()
+            return json.loads(result[0]) if result else []
+    except Exception as e:
+        st.error(f"대화 내역을 불러오는 중 오류가 발생했습니다: {e}")
+        return []
+    finally:
+        if db: db.close()
 
-# 대화 내역 저장하기
+# 대화 내역 저장하기 (DB 연결 누수 및 에러 로깅 수정)
 def save_chat(topic, chat):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
     code = st.session_state.get("user_code", "").strip()
+    db = None
     try:
         db = connect_to_db()
-        cursor = db.cursor()
-        sql = """
-        INSERT INTO qna_unique (number, name, code, topic, chat, time) 
-        VALUES (%s, %s, %s, %s, %s, %s) 
-        ON DUPLICATE KEY UPDATE chat = VALUES(chat), time = VALUES(time)
-        """
-        val = (number, name, code, topic, json.dumps(chat, ensure_ascii=False), datetime.now())
-        cursor.execute(sql, val)
-        db.close()
-    except: pass
+        with db.cursor() as cursor:
+            sql = """
+            INSERT INTO qna_unique (number, name, code, topic, chat, time) 
+            VALUES (%s, %s, %s, %s, %s, %s) 
+            ON DUPLICATE KEY UPDATE chat = VALUES(chat), time = VALUES(time)
+            """
+            val = (number, name, code, topic, json.dumps(chat, ensure_ascii=False), datetime.now())
+            cursor.execute(sql, val)
+    except Exception as e:
+        st.error(f"대화 저장 중 오류가 발생했습니다: {e}")
+    finally:
+        if db: db.close()
 
 # p5.js 실시간 실행기
 def render_p5(code):
@@ -104,7 +114,14 @@ def page_1():
     st.subheader("학습자 정보를 입력하세요")
     st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
     st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
-    st.session_state["user_code"] = st.text_input("식별코드", type="password")
+    st.session_state["user_code"] = st.text_input(
+        "식별코드",
+        value=st.session_state.get("user_code", ""),
+        help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요."
+    )
+    st.markdown("""
+    > 🌟 **“생각하건대 현재의 고난은 장차 우리에게 나타날 영광과 비교할 수 없도다”** > — 로마서 8장 18절
+    """)
     
     if st.button("접속하기"):
         if all([st.session_state["user_number"], st.session_state["user_name"], st.session_state["user_code"]]):
@@ -153,8 +170,8 @@ def page_2():
         for m in messages:
             with chat_container.chat_message(m["role"]):
                 st.write(m["content"])
-                # +++++ 구분자 사이의 코드 추출
-                snippets = re.findall(r"\+\+\+\+\+(.*?)\+\+\+\+\+", m["content"], re.DOTALL)
+                # +++++ 구분자 사이의 코드 추출 (강화된 정규식)
+                snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
                 for snippet in snippets:
                     all_code_snippets.append(snippet.strip())
 
@@ -174,9 +191,17 @@ def page_2():
             messages.append({"role": "user", "content": user_input})
             
             model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
-            history = [{"role": "model" if m["role"] == "assistant" else "user", "parts": [m["content"]]} for m in messages[:-1]]
+            
+            # 제미나이 히스토리 규칙 준수 (교차 검증 로직)
+            history = []
+            for m in messages[:-1]:
+                role = "model" if m["role"] == "assistant" else "user"
+                # 이전 역할과 중복되지 않을 때만 추가
+                if not history or history[-1]["role"] != role:
+                    history.append({"role": role, "parts": [m["content"]]})
             
             try:
+                # API 호출 시 안전 설정(Safety Settings)은 모델 생성 시 추가 가능
                 response = model.generate_content(history + [{"role": "user", "parts": [user_input]}])
                 answer = response.text
                 messages.append({"role": "assistant", "content": answer})
@@ -184,12 +209,12 @@ def page_2():
                 save_chat(st.session_state["current_topic"], messages)
                 
                 # 최신 코드 자동 로드
-                new_snippets = re.findall(r"\+\+\+\+\+(.*?)\+\+\+\+\+", answer, re.DOTALL)
+                new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
                 if new_snippets:
                     st.session_state["current_code"] = new_snippets[-1].strip()
                 st.rerun()
             except Exception as e:
-                st.error(f"오류 발생: {e}")
+                st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
 
     # 우측: p5.js 실행 화면
     with col_preview:
