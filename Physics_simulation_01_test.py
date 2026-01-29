@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 import google.generativeai as genai
 import re
-import hashlib  # [수정] TypeError 방지 및 고유 키 생성을 위해 추가
+import hashlib
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 
@@ -15,7 +15,7 @@ st.set_page_config(layout="wide")
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 MODEL = "gemini-2.5-flash" 
 
-# 시스템 프롬프트 설정
+# 시스템 프롬프트 설정 (Python 문법에 맞게 괄호로 묶어 처리)
 SYSTEM_PROMPT = (
     "당신은 물리학 시뮬레이션 생성 도우미 역할을 합니다.\n"
     "사용자 요청에 따라 p5.js에서 실행할 수 있는 자바스크립트 코드를 생성합니다.\n\n"
@@ -97,14 +97,14 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# [수정] p5.js 실시간 실행기 (회색 화면 및 TypeError 방지)
+# p5.js 실시간 실행기 (TypeError 방지 및 회색 화면 해결)
 def render_p5(code):
-    if not code:
+    if not code or str(code).strip() == "":
         return
-    
-    # 코드 내용에 따른 고유 키 생성 (iframe 갱신용)
+
+    # 코드 문자열의 해시를 생성하여 고유 키로 사용 (리렌더링 보장)
     code_str = str(code)
-    code_hash = hashlib.md5(code_str.encode()).hexdigest()
+    code_hash = hashlib.md5(code_str.encode('utf-8')).hexdigest()
     
     p5_html = f"""
     <!DOCTYPE html>
@@ -112,7 +112,8 @@ def render_p5(code):
     <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
         <style>
-            body {{ margin: 0; background: #f0f0f0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }}
+            body {{ margin: 0; padding: 0; background: #f0f0f0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }}
+            canvas {{ display: block; }}
         </style>
     </head>
     <body>
@@ -120,8 +121,8 @@ def render_p5(code):
     </body>
     </html>
     """
-    # key 매개변수를 사용하여 Streamlit이 코드 변경 시 iframe을 새로 그리도록 함
-    components.html(p5_html, height=500, key=f"p5_sim_{code_hash}")
+    # key값에 hash를 포함하여 코드 변경 시 새 iframe을 생성하도록 유도
+    components.html(p5_html, height=500, key=f"p5_sim_frame_{code_hash}")
 
 # 1페이지: 정보 입력
 def page_1():
@@ -145,8 +146,9 @@ def page_1():
         else:
             st.error("모든 정보를 입력해주세요.")
 
-# 2페이지: 메인 워크스페이스
+# 2페이지: 메인 워크스페이스 (채팅 및 시뮬레이션)
 def page_2():
+    # 사이드바: 프로젝트 관리
     with st.sidebar:
         st.title("📂 프로젝트 관리")
         existing_topics = get_user_topics()
@@ -173,6 +175,7 @@ def page_2():
     st.header(f"Project: {st.session_state['current_topic']}")
     col_chat, col_preview = st.columns([1, 1])
 
+    # 좌측: AI 채팅 화면
     with col_chat:
         st.subheader("💬 AI Designer")
         chat_container = st.container(height=500)
@@ -182,15 +185,16 @@ def page_2():
 
         for m in messages:
             with chat_container.chat_message(m["role"]):
-                # [수정] 채팅창에서 코드를 숨기고 안내 문구만 노출 (re.sub 사용)
-                clean_content = re.sub(r"\+{5}.*?\+{5}", "\n\n> 💡 **시뮬레이션 코드가 생성되었습니다. 아래에서 실행 버튼을 눌러 확인하세요.**\n\n", m["content"], flags=re.DOTALL)
-                st.markdown(clean_content)
+                # 1. 채팅창에서는 코드 블록만 제거하여 출력
+                display_text = re.sub(r"\+{5}.*?\+{5}", "\n\n> 💡 **시뮬레이션 코드가 준비되었습니다.**\n\n", m["content"], flags=re.DOTALL)
+                st.write(display_text)
                 
                 # 내부적으로 코드 스니펫 추출
                 snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
                 for snippet in snippets:
                     all_code_snippets.append(snippet.strip())
 
+        # 코드 버전 선택 실행
         if all_code_snippets:
             st.divider()
             selected_ver = st.selectbox(
@@ -201,8 +205,10 @@ def page_2():
             if st.button("▶️ 선택한 코드 실행"):
                 st.session_state["current_code"] = all_code_snippets[selected_ver]
 
+        # 사용자 입력
         if user_input := st.chat_input("시뮬레이션 내용을 설명해 주세요..."):
             messages.append({"role": "user", "content": user_input})
+            
             model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
             
             history = []
@@ -215,6 +221,7 @@ def page_2():
                 response = model.generate_content(history + [{"role": "user", "parts": [user_input]}])
                 answer = response.text
                 messages.append({"role": "assistant", "content": answer})
+                
                 save_chat(st.session_state["current_topic"], messages)
                 
                 new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
@@ -224,16 +231,17 @@ def page_2():
             except Exception as e:
                 st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
 
+    # 우측: p5.js 실행 화면
     with col_preview:
         st.subheader("🖥️ Simulation Preview")
         if st.session_state.get("current_code"):
-            # 수정된 렌더링 함수 호출 (TypeError 방지 로직 포함)
             render_p5(st.session_state["current_code"])
             with st.expander("소스 코드 확인"):
                 st.code(st.session_state["current_code"], language="javascript")
         else:
             st.info("코드가 생성되면 이곳에 시뮬레이션이 나타납니다.")
 
+# 페이지 라우팅 제어
 if "step" not in st.session_state:
     st.session_state["step"] = 1
 
