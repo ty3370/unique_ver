@@ -49,19 +49,94 @@ def connect_to_db():
         charset="utf8mb4"
     )
 
-@st.cache_data(show_spinner=False)
-def fetch_all_rows():
+def fetch_numbers():
     db = connect_to_db()
-    # 필요한 컬럼만 가져오면 더 빠르고 메모리도 절약됨
-    df = pd.read_sql(
+    cur = db.cursor()
+    cur.execute(
         """
-        SELECT number, name, code, topic, chat
+        SELECT DISTINCT number
         FROM qna_unique
-        """,
-        db
+        ORDER BY number
+        """
     )
+    rows = cur.fetchall()
+    cur.close()
     db.close()
-    return df
+    return [r[0] for r in rows]
+
+def fetch_names(number):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT name
+        FROM qna_unique
+        WHERE number=%s
+        ORDER BY name
+        """,
+        (number,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    return [r[0] for r in rows]
+
+def fetch_codes(number, name):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT code
+        FROM qna_unique
+        WHERE number=%s
+          AND name=%s
+        ORDER BY code
+        """,
+        (number, name)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    return [r[0] for r in rows]
+
+def fetch_topics(number, name, code):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        SELECT DISTINCT topic
+        FROM qna_unique
+        WHERE number=%s
+          AND name=%s
+          AND code=%s
+          AND topic NOT IN %s
+        ORDER BY topic
+        """,
+        (number, name, code, EXCLUDED_TOPICS)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    return [r[0] for r in rows]
+
+def fetch_chat(number, name, code, topic):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        """
+        SELECT chat
+        FROM qna_unique
+        WHERE number=%s
+          AND name=%s
+          AND code=%s
+          AND topic=%s
+        """,
+        (number, name, code, topic)
+    )
+    row = cur.fetchone()
+    cur.close()
+    db.close()
+    return row[0] if row else None
 
 def delete_chat(number, name, topic):
     db = connect_to_db()
@@ -80,45 +155,27 @@ password = st.text_input("관리자 비밀번호", type="password")
 if password != st.secrets["PASSWORD"]:
     st.stop()
 
-df_all = fetch_all_rows()
-
-# 학번
-numbers = sorted(df_all["number"].dropna().unique().tolist())
+numbers = fetch_numbers()
 number = st.selectbox("학번", ["선택"] + numbers)
 if number == "선택":
     st.stop()
 
-df_n = df_all[df_all["number"] == number]
-
-# 이름
-names = sorted(df_n["name"].dropna().unique().tolist())
+names = fetch_names(number)
 name = st.selectbox("이름", ["선택"] + names)
 if name == "선택":
     st.stop()
 
-df_nn = df_n[df_n["name"] == name]
-
-# 식별코드
-codes = sorted(df_nn["code"].dropna().unique().tolist())
+codes = fetch_codes(number, name)
 code = st.selectbox("식별코드", ["선택"] + codes)
 if code == "선택":
     st.stop()
 
-df_nnc = df_nn[df_nn["code"] == code]
-
-topics = sorted(
-    df_nnc[~df_nnc["topic"].isin(EXCLUDED_TOPICS)]["topic"].dropna().unique().tolist()
-)
+topics = fetch_topics(number, name, code)
 topic = st.selectbox("토픽", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
-df_final = df_nnc[df_nnc["topic"] == topic]
-chat_raw = None
-if not df_final.empty:
-    # 동일 키로 여러 row가 있으면 첫 번째 사용 (기존 fetch_chat도 단건 fetch였던 것과 유사)
-    chat_raw = df_final.iloc[0]["chat"]
-
+chat_raw = fetch_chat(number, name, code, topic)
 if not chat_raw:
     st.warning("대화 없음")
     st.stop()
@@ -174,6 +231,5 @@ else:
     st.warning("정말 삭제하시겠습니까?")
     if area.button("삭제 확정"):
         delete_chat(number, name, topic)
-        st.cache_data.clear()
         st.session_state.confirm_delete = False
         st.success("삭제 완료")
