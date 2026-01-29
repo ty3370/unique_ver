@@ -97,13 +97,13 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# p5.js 실시간 실행기 (TypeError 방지 및 회색 화면 해결)
+# p5.js 실시간 실행기 (TypeError 및 회색 화면 해결 버전)
 def render_p5(code):
-    if not code or str(code).strip() == "":
+    if not code:
         return
-
-    # 코드 문자열의 해시를 생성하여 고유 키로 사용 (리렌더링 보장)
-    code_str = str(code)
+    
+    # 코드를 문자열로 확정하고 해시 생성 (키 값 중복 방지)
+    code_str = str(code).strip()
     code_hash = hashlib.md5(code_str.encode('utf-8')).hexdigest()
     
     p5_html = f"""
@@ -112,8 +112,8 @@ def render_p5(code):
     <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
         <style>
-            body {{ margin: 0; padding: 0; background: #f0f0f0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }}
-            canvas {{ display: block; }}
+            body {{ margin: 0; background: #f0f0f0; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }}
+            canvas {{ display: block !important; }}
         </style>
     </head>
     <body>
@@ -121,8 +121,8 @@ def render_p5(code):
     </body>
     </html>
     """
-    # key값에 hash를 포함하여 코드 변경 시 새 iframe을 생성하도록 유도
-    components.html(p5_html, height=500, key=f"p5_sim_frame_{code_hash}")
+    # key 인자를 고유하게 설정하여 Streamlit이 내용 변경을 감지하고 다시 그리게 함
+    components.html(p5_html, height=500, key=f"p5_render_{code_hash}")
 
 # 1페이지: 정보 입력
 def page_1():
@@ -185,11 +185,11 @@ def page_2():
 
         for m in messages:
             with chat_container.chat_message(m["role"]):
-                # 1. 채팅창에서는 코드 블록만 제거하여 출력
-                display_text = re.sub(r"\+{5}.*?\+{5}", "\n\n> 💡 **시뮬레이션 코드가 준비되었습니다.**\n\n", m["content"], flags=re.DOTALL)
-                st.write(display_text)
+                # [수정] 채팅창에서는 코드 블록만 제거하고 상태 메시지만 출력
+                display_content = re.sub(r"\+{5}.*?\+{5}", "\n\n> 💡 **시뮬레이션 코드가 생성되었습니다.**\n\n", m["content"], flags=re.DOTALL)
+                st.markdown(display_content)
                 
-                # 내부적으로 코드 스니펫 추출
+                # 내부적으로 코드 스니펫 추출 로직은 그대로 유지
                 snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
                 for snippet in snippets:
                     all_code_snippets.append(snippet.strip())
@@ -211,6 +211,7 @@ def page_2():
             
             model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
             
+            # 제미나이 히스토리 규칙 준수
             history = []
             for m in messages[:-1]:
                 role = "model" if m["role"] == "assistant" else "user"
@@ -224,6 +225,7 @@ def page_2():
                 
                 save_chat(st.session_state["current_topic"], messages)
                 
+                # 최신 코드 자동 로드
                 new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
                 if new_snippets:
                     st.session_state["current_code"] = new_snippets[-1].strip()
@@ -235,6 +237,7 @@ def page_2():
     with col_preview:
         st.subheader("🖥️ Simulation Preview")
         if st.session_state.get("current_code"):
+            # 수정된 안전 렌더링 함수 호출
             render_p5(st.session_state["current_code"])
             with st.expander("소스 코드 확인"):
                 st.code(st.session_state["current_code"], language="javascript")
