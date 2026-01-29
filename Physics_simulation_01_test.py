@@ -25,7 +25,6 @@ SYSTEM_PROMPT = (
     "+++++"
     "4. 코드를 제공하며 수정에 관한 아주 간략한 설명을 한 줄 이내로 짧게 제공하세요."
     "5. createCanvas()의 가로 크기는 window.innerWidth * 0.9 를 절대 초과하지 말고, 세로 크기는 window.innerHeight * 0.75 를 절대 초과하지 마세요. 캔버스 크기를 하드코딩된 숫자로 지정하지 말고, 반드시 위 최대 크기 범위 내에서만 캔버스를 생성하세요."
-    "6. 확대/축소(Zoom)는 CSS transform이나 canvas 크기 변경으로 처리하지 말고, p5.js의 scale()과 translate()를 사용해 좌표계 기준으로 구현하세요. 모든 마우스 입력과 상호작용은 해당 scale 값을 고려해 계산되도록 코드를 작성하세요."
     "이 규칙은 모든 코드 응답에 대해 예외 없이 적용되어야 하며, 어떠한 예외도 두어선 안 됩니다."
 )
 
@@ -115,12 +114,40 @@ def render_p5(code):
 html, body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  background: #0b1020;
+  color: #e6e8ef;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+#topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  backdrop-filter: blur(10px);
 }
 #fs {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 9999;
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(255,255,255,0.06);
+  color: #e6e8ef;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+#fs:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.22);
+}
+#fs:active {
+  transform: translateY(0px);
 }
 canvas {
   display: block;
@@ -129,7 +156,9 @@ canvas {
 </head>
 <body>
 
-<button id="fs">Fullscreen</button>
+<div id="topbar">
+  <button id="fs">⛶ Fullscreen</button>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 
@@ -204,81 +233,98 @@ def page_2():
         return
 
     st.header(f"Project: {st.session_state['current_topic']}")
-    col_chat, col_preview = st.columns([1, 1])
 
-    with col_chat:
+    top = st.container()
+    bottom = st.container()
+
+    with top:
         st.subheader("💬 AI Designer")
-        chat_container = st.container(height=500)
+        chat_col, control_col = st.columns([2, 1])
 
         messages = st.session_state.get("messages", [])
         all_code_snippets = []
         code_counter = 0
 
-        for m in messages:
-            with chat_container.chat_message(m["role"]):
+        with chat_col:
+            chat_container = st.container(height=420)
 
-                def replace_code_block(match):
-                    nonlocal code_counter
-                    code_counter += 1
-                    return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료**"
+            for m in messages:
+                with chat_container.chat_message(m["role"]):
 
-                display_content = re.sub(
-                    r"\+{5}.*?\+{5}",
-                    replace_code_block,
-                    m["content"],
-                    flags=re.DOTALL,
-                )
+                    def replace_code_block(match):
+                        nonlocal code_counter
+                        code_counter += 1
+                        return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료**"
 
-                st.markdown(display_content)
+                    display_content = re.sub(
+                        r"\+{5}.*?\+{5}",
+                        replace_code_block,
+                        m["content"],
+                        flags=re.DOTALL,
+                    )
 
-                snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
-                for snippet in snippets:
-                    all_code_snippets.append(snippet.strip())
+                    st.markdown(display_content)
 
-        if all_code_snippets:
-            st.divider()
-            selected_ver = st.selectbox(
-                "실행할 코드 버전 선택",
-                range(len(all_code_snippets)),
-                format_func=lambda x: f"Code Version {x+1}",
+                    snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
+                    for snippet in snippets:
+                        all_code_snippets.append(snippet.strip())
+
+        with control_col:
+            st.markdown("#### ✏️ 입력 & 실행")
+            user_input = st.text_area(
+                "시뮬레이션 설명",
+                placeholder="시뮬레이션 내용을 설명해 주세요...",
+                height=140,
+                key="prompt_area",
             )
-            if st.button("▶️ 선택한 코드 실행"):
-                st.session_state["current_code"] = all_code_snippets[selected_ver]
-                st.rerun()
 
-        if user_input := st.chat_input("시뮬레이션 내용을 설명해 주세요..."):
-            messages.append({"role": "user", "content": user_input})
-            model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
-
-            history = []
-            for m in messages[:-1]:
-                role = "model" if m["role"] == "assistant" else "user"
-                if not history or history[-1]["role"] != role:
-                    history.append({"role": role, "parts": [m["content"]]})
-
-            try:
-                response = model.generate_content(
-                    history + [{"role": "user", "parts": [user_input]}]
+            if all_code_snippets:
+                selected_ver = st.selectbox(
+                    "코드 버전 선택",
+                    range(len(all_code_snippets)),
+                    format_func=lambda x: f"Code Version {x+1}",
                 )
-                answer = response.text
-                messages.append({"role": "assistant", "content": answer})
-                save_chat(st.session_state["current_topic"], messages)
 
-                new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
-                if new_snippets:
-                    st.session_state["current_code"] = new_snippets[-1].strip()
+                if st.button("▶️ 선택한 코드 실행", use_container_width=True):
+                    st.session_state["current_code"] = all_code_snippets[selected_ver]
+                    st.rerun()
 
-                st.rerun()
+            if st.button("🤖 AI에게 요청", use_container_width=True, type="primary"):
+                if user_input.strip():
+                    messages.append({"role": "user", "content": user_input})
+                    model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
 
-            except Exception as e:
-                st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
+                    history = []
+                    for m in messages[:-1]:
+                        role = "model" if m["role"] == "assistant" else "user"
+                        if not history or history[-1]["role"] != role:
+                            history.append({"role": role, "parts": [m["content"]]})
 
-    with col_preview:
+                    try:
+                        response = model.generate_content(
+                            history + [{"role": "user", "parts": [user_input]}]
+                        )
+                        answer = response.text
+                        messages.append({"role": "assistant", "content": answer})
+                        save_chat(st.session_state["current_topic"], messages)
+
+                        new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
+                        if new_snippets:
+                            st.session_state["current_code"] = new_snippets[-1].strip()
+
+                        st.rerun()
+
+                    except Exception as e:
+                        st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
+                else:
+                    st.warning("시뮬레이션 설명을 입력해 주세요.")
+
+    with bottom:
         st.subheader("🖥️ Simulation Preview")
 
         if st.session_state.get("current_code"):
             p5_html = render_p5(st.session_state["current_code"])
-            components.html(p5_html, height=650, scrolling=True)
+            components.html(p5_html, height=850, scrolling=False)
 
             with st.expander("소스 코드 확인"):
                 st.code(st.session_state["current_code"], language="javascript")
