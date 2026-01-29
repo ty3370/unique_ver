@@ -120,6 +120,7 @@ def render_p5(code):
             body {{
                 margin: 0;
                 background: #f0f0f0;
+                overflow: hidden;
             }}
             #controls {{
                 position: fixed;
@@ -131,24 +132,78 @@ def render_p5(code):
                 border-radius: 6px;
                 font-size: 12px;
             }}
-            #container {{
+            #stage {{
+                position: absolute;
+                top: 0;
+                left: 0;
                 transform-origin: top left;
+                cursor: grab;
+            }}
+            #stage.dragging {{
+                cursor: grabbing;
             }}
         </style>
     </head>
     <body>
         <div id="controls">
             Zoom
-            <input type="range" min="0.5" max="2" step="0.1" value="1"
-                oninput="
-                const c = document.querySelector('canvas');
-                if (c) {{
-                    c.style.transformOrigin = 'top left';
-                    c.style.transform = 'scale(' + this.value + ')';
-                }}
-                ">
+            <input id="zoom" type="range" min="0.5" max="2" step="0.1" value="1">
+            <button id="fs">Fullscreen</button>
         </div>
-        <div id="container"></div>
+
+        <div id="stage">
+            <div id="container"></div>
+        </div>
+
+        <script>
+            let scale = 1;
+            let offsetX = 0;
+            let offsetY = 0;
+            let dragging = false;
+            let startX = 0;
+            let startY = 0;
+
+            const stage = document.getElementById('stage');
+            const zoomInput = document.getElementById('zoom');
+
+            function updateTransform() {{
+                stage.style.transform =
+                    'translate(' + offsetX + 'px,' + offsetY + 'px) scale(' + scale + ')';
+            }}
+
+            zoomInput.oninput = function() {{
+                scale = parseFloat(this.value);
+                updateTransform();
+            }};
+
+            stage.addEventListener('mousedown', e => {{
+                dragging = true;
+                stage.classList.add('dragging');
+                startX = e.clientX - offsetX;
+                startY = e.clientY - offsetY;
+            }});
+
+            window.addEventListener('mousemove', e => {{
+                if (!dragging) return;
+                offsetX = e.clientX - startX;
+                offsetY = e.clientY - startY;
+                updateTransform();
+            }});
+
+            window.addEventListener('mouseup', () => {{
+                dragging = false;
+                stage.classList.remove('dragging');
+            }});
+
+            document.getElementById('fs').onclick = () => {{
+                if (!document.fullscreenElement) {{
+                    document.documentElement.requestFullscreen();
+                }} else {{
+                    document.exitFullscreen();
+                }}
+            }};
+        </script>
+
         <script>
             const _createCanvas = window.createCanvas;
             window.createCanvas = function() {{
@@ -157,6 +212,7 @@ def render_p5(code):
                 return c;
             }};
         </script>
+
         <script>
             {code_str}
         </script>
