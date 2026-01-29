@@ -194,8 +194,13 @@ def show_stage(message):
     """, unsafe_allow_html=True)
 
 def page_1():
-    st.title("🚀 물리학 시뮬레이션 제작 AI")
-    st.subheader("학습자 정보를 입력하세요")
+    st.markdown(
+        """
+        <h1 style="text-align: center;">🚀 물리학 시뮬레이션 제작 AI</h1>
+        <h3 style="text-align: center;">학습자 정보를 입력하세요</h3>
+        """,
+        unsafe_allow_html=True
+    )
 
     left, center, right = st.columns([1, 2, 1])
 
@@ -228,20 +233,22 @@ def page_1():
             unsafe_allow_html=True
         )
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        btn_col_l, btn_col_c, btn_col_r = st.columns([1, 2, 1])
+        with btn_col_c:
+            if st.button("접속하기", use_container_width=True):
+                if all(
+                    [
+                        st.session_state["user_number"],
+                        st.session_state["user_name"],
+                        st.session_state["user_code"],
+                    ]
+                ):
+                    st.session_state["step"] = 2
+                    st.rerun()
+                else:
+                    st.error("모든 정보를 입력해주세요.")
 
-    if st.button("접속하기"):
-        if all(
-            [
-                st.session_state["user_number"],
-                st.session_state["user_name"],
-                st.session_state["user_code"],
-            ]
-        ):
-            st.session_state["step"] = 2
-            st.rerun()
-        else:
-            st.error("모든 정보를 입력해주세요.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 def page_2():
     with st.sidebar:
