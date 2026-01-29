@@ -248,6 +248,7 @@ def page_2():
 
         with control_col:
             st.markdown("#### ✏️ 입력 & 실행")
+
             user_input = st.text_area(
                 "시뮬레이션 설명",
                 placeholder="시뮬레이션 내용을 설명해 주세요...",
@@ -255,21 +256,14 @@ def page_2():
                 key="prompt_area",
             )
 
+            # ✅ 입력 바로 아래에 AI 요청 버튼
             if st.button("🤖 AI에게 요청", use_container_width=True, type="primary"):
                 if user_input.strip():
                     messages.append({"role": "user", "content": user_input})
-                    model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
-
-            if all_code_snippets:
-                selected_ver = st.selectbox(
-                    "코드 버전 선택",
-                    range(len(all_code_snippets)),
-                    format_func=lambda x: f"Code Version {x+1}",
-                )
-
-                if st.button("▶️ 선택한 코드 실행", use_container_width=True):
-                    st.session_state["current_code"] = all_code_snippets[selected_ver]
-                    st.rerun()
+                    model = genai.GenerativeModel(
+                        MODEL,
+                        system_instruction=SYSTEM_PROMPT
+                    )
 
                     history = []
                     for m in messages[:-1]:
@@ -295,6 +289,20 @@ def page_2():
                         st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
                 else:
                     st.warning("시뮬레이션 설명을 입력해 주세요.")
+
+            # ⬇️ 과거 결과(코드 버전) 관련 UI는 아래로 분리
+            if all_code_snippets:
+                st.divider()
+
+                selected_ver = st.selectbox(
+                    "코드 버전 선택",
+                    range(len(all_code_snippets)),
+                    format_func=lambda x: f"Code Version {x+1}",
+                )
+
+                if st.button("▶️ 선택한 코드 실행", use_container_width=True):
+                    st.session_state["current_code"] = all_code_snippets[selected_ver]
+                    st.rerun()
 
     with bottom:
         st.subheader("🖥️ Simulation Preview")
