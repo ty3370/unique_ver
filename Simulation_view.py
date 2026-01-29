@@ -63,15 +63,15 @@ def fetch_names(number):
     db.close()
     return [r[0] for r in rows]
 
-def fetch_identifiers(number, name):
+def fetch_codes(number, name):
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
         """
-        SELECT DISTINCT identifier
+        SELECT DISTINCT code
         FROM qna_unique
         WHERE number=%s AND name=%s
-        ORDER BY identifier
+        ORDER BY code
         """,
         (number, name)
     )
@@ -80,33 +80,33 @@ def fetch_identifiers(number, name):
     db.close()
     return [r[0] for r in rows]
 
-def fetch_topics(number, name, identifier):
+def fetch_topics(number, name, code):
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
         """
         SELECT DISTINCT topic
         FROM qna_unique
-        WHERE number=%s AND name=%s AND identifier=%s
+        WHERE number=%s AND name=%s AND code=%s
         ORDER BY topic
         """,
-        (number, name, identifier)
+        (number, name, code)
     )
     rows = cur.fetchall()
     cur.close()
     db.close()
     return [r[0] for r in rows]
 
-def fetch_chat(number, name, identifier, topic):
+def fetch_chat(number, name, code, topic):
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
         """
         SELECT chat
         FROM qna_unique
-        WHERE number=%s AND name=%s AND identifier=%s AND topic=%s
+        WHERE number=%s AND name=%s AND code=%s AND topic=%s
         """,
-        (number, name, identifier, topic)
+        (number, name, code, topic)
     )
     row = cur.fetchone()
     cur.close()
@@ -140,17 +140,17 @@ name = st.selectbox("이름", ["선택"] + names)
 if name == "선택":
     st.stop()
 
-identifiers = fetch_identifiers(number, name)
-identifier = st.selectbox("식별코드", ["선택"] + identifiers)
-if identifier == "선택":
+codes = fetch_codes(number, name)
+code = st.selectbox("식별코드", ["선택"] + codes)
+if code == "선택":
     st.stop()
 
-topics = fetch_topics(number, name, identifier)
+topics = fetch_topics(number, name, code)
 topic = st.selectbox("토픽", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
-chat_raw = fetch_chat(number, name, identifier, topic)
+chat_raw = fetch_chat(number, name, code, topic)
 if not chat_raw:
     st.warning("대화 없음")
     st.stop()
@@ -175,8 +175,8 @@ for msg in chat:
 
     for part in parts:
         if part.startswith("+++++") and part.endswith("+++++"):
-            code = part[5:-5].strip()
-            st.code(code, language="javascript")
+            code_block = part[5:-5].strip()
+            st.code(code_block, language="javascript")
         else:
             text = clean_inline_latex(part)
             if text:
