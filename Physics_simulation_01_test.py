@@ -97,16 +97,15 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# p5.js 실시간 실행기 (TypeError 수정 버전)
+# p5.js 실시간 실행기 (안정적인 Key 생성 버전)
 def render_p5(code):
     if not code:
         return
     
-    import time
     code_str = str(code).strip()
-    # TypeError 방지를 위해 코드 해시와 타임스탬프를 조합하여 고유 키 생성
+    # 해시를 통해 코드가 같으면 동일한 키를, 다르면 새로운 키를 부여하여 충돌 방지
     code_hash = hashlib.md5(code_str.encode('utf-8')).hexdigest()
-    unique_key = f"p5_render_{code_hash}_{int(time.time() * 1000)}"
+    unique_key = f"p5_fixed_{code_hash}"
     
     p5_html = f"""
     <!DOCTYPE html>
@@ -123,7 +122,6 @@ def render_p5(code):
     </body>
     </html>
     """
-    # 고유 키를 사용하여 컴포넌트 충돌 방지
     components.html(p5_html, height=500, key=unique_key)
 
 # 1페이지: 정보 입력
@@ -206,6 +204,7 @@ def page_2():
             )
             if st.button("▶️ 선택한 코드 실행"):
                 st.session_state["current_code"] = all_code_snippets[selected_ver]
+                st.rerun() # [중요] 선택 실행 시에도 리런을 호출하여 컴포넌트 오류 방지
 
         # 사용자 입력
         if user_input := st.chat_input("시뮬레이션 내용을 설명해 주세요..."):
