@@ -255,6 +255,11 @@ def page_2():
                 key="prompt_area",
             )
 
+            if st.button("🤖 AI에게 요청", use_container_width=True, type="primary"):
+                if user_input.strip():
+                    messages.append({"role": "user", "content": user_input})
+                    model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
+
             if all_code_snippets:
                 selected_ver = st.selectbox(
                     "코드 버전 선택",
@@ -265,11 +270,6 @@ def page_2():
                 if st.button("▶️ 선택한 코드 실행", use_container_width=True):
                     st.session_state["current_code"] = all_code_snippets[selected_ver]
                     st.rerun()
-
-            if st.button("🤖 AI에게 요청", use_container_width=True, type="primary"):
-                if user_input.strip():
-                    messages.append({"role": "user", "content": user_input})
-                    model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
 
                     history = []
                     for m in messages[:-1]:
