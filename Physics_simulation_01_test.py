@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import google.generativeai as genai
 import re
+import hashlib
 from zoneinfo import ZoneInfo
 import streamlit.components.v1 as components
 
@@ -37,7 +38,7 @@ def connect_to_db():
         autocommit=True
     )
 
-# 유저 토픽 목록 불러오기 (DB 연결 누수 및 에러 로깅 수정)
+# 유저 토픽 목록 불러오기
 def get_user_topics():
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -56,7 +57,7 @@ def get_user_topics():
         if db: db.close()
     return topics
 
-# 특정 토픽의 대화 내역 불러오기 (DB 연결 누수 및 에러 로깅 수정)
+# 특정 토픽의 대화 내역 불러오기
 def load_chat(topic):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -75,7 +76,7 @@ def load_chat(topic):
     finally:
         if db: db.close()
 
-# 대화 내역 저장하기 (DB 연결 누수 및 에러 로깅 수정)
+# 대화 내역 저장하기
 def save_chat(topic, chat):
     number = st.session_state.get("user_number", "").strip()
     name = st.session_state.get("user_name", "").strip()
@@ -96,17 +97,22 @@ def save_chat(topic, chat):
     finally:
         if db: db.close()
 
-# p5.js 실시간 실행기
+# p5.js 실시간 실행기 (회색 화면 수정본)
 def render_p5(code):
+    # 코드의 고유 해시값을 키로 사용하여 iframe 강제 새로고침 유도
+    code_hash = hashlib.md5(code.encode()).hexdigest()
     p5_html = f"""
+    <!DOCTYPE html>
     <html>
-    <head><script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script></head>
-    <body style="margin:0; background:#f0f0f0; overflow:hidden; display:flex; justify-content:center; align-items:center;">
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+    </head>
+    <body style="margin:0; background:#f0f0f0; overflow:hidden; display:flex; justify-content:center; align-items:center; height:100vh;">
         <script>{code}</script>
     </body>
     </html>
     """
-    components.html(p5_html, height=500)
+    components.html(p5_html, height=500, key=f"p5_{code_hash}")
 
 # 1페이지: 정보 입력
 def page_1():
@@ -169,8 +175,11 @@ def page_2():
 
         for m in messages:
             with chat_container.chat_message(m["role"]):
-                st.write(m["content"])
-                # +++++ 구분자 사이의 코드 추출 (강화된 정규식)
+                # [수정] 채팅창에서 코드 블록(+++++ 사이)만 숨기고 안내 문구 출력
+                display_content = re.sub(r"\+{5}.*?\+{5}", "\n\n> 💡 **시뮬레이션 코드가 생성되었습니다. 아래에서 버전을 선택하여 실행하세요.**\n\n", m["content"], flags=re.DOTALL)
+                st.markdown(display_content)
+                
+                # 내부적으로 코드 스니펫 추출 로직은 유지
                 snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
                 for snippet in snippets:
                     all_code_snippets.append(snippet.strip())
@@ -192,23 +201,19 @@ def page_2():
             
             model = genai.GenerativeModel(MODEL, system_instruction=SYSTEM_PROMPT)
             
-            # 제미나이 히스토리 규칙 준수 (교차 검증 로직)
             history = []
             for m in messages[:-1]:
                 role = "model" if m["role"] == "assistant" else "user"
-                # 이전 역할과 중복되지 않을 때만 추가
                 if not history or history[-1]["role"] != role:
                     history.append({"role": role, "parts": [m["content"]]})
             
             try:
-                # API 호출 시 안전 설정(Safety Settings)은 모델 생성 시 추가 가능
                 response = model.generate_content(history + [{"role": "user", "parts": [user_input]}])
                 answer = response.text
                 messages.append({"role": "assistant", "content": answer})
                 
                 save_chat(st.session_state["current_topic"], messages)
                 
-                # 최신 코드 자동 로드
                 new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
                 if new_snippets:
                     st.session_state["current_code"] = new_snippets[-1].strip()
