@@ -106,22 +106,20 @@ def save_chat(topic, chat):
             db.close()
 
 def render_p5(code):
-    return f"""
+    html = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <title>p5 Simulation</title>
-
 <style>
-html, body {{
+html, body {
   margin: 0;
   padding: 0;
   overflow: hidden;
   background: #111;
-}}
-
-#ui {{
+}
+#ui {
   position: fixed;
   top: 10px;
   left: 10px;
@@ -131,23 +129,18 @@ html, body {{
   padding: 8px 10px;
   border-radius: 6px;
   font-family: sans-serif;
-}}
-
-#stage {{
+}
+#stage {
   position: absolute;
   top: 0;
   left: 0;
   transform-origin: top left;
-}}
-
-canvas {{
-  display: block;
-}}
+}
+canvas { display: block; }
 </style>
 </head>
 
 <body>
-
 <div id="ui">
   Zoom:
   <input id="zoom" type="range" min="0.2" max="3" step="0.01" value="1">
@@ -159,74 +152,68 @@ canvas {{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 
 <script>
-{code}
+__P5_CODE__
 </script>
 
 <script>
-(() => {{
-  let offsetX = 0;
-  let offsetY = 0;
-  let dragging = false;
-  let startX = 0;
-  let startY = 0;
+(function(){
+  let offsetX = 0, offsetY = 0;
+  let dragging = false, startX = 0, startY = 0;
   let zoomScale = 1;
 
   const stage = document.getElementById('stage');
   const zoomInput = document.getElementById('zoom');
 
-  function applyTransform() {{
+  function applyTransform(){
     stage.style.transform =
-      `translate(${{offsetX}}px, ${{offsetY}}px) scale(${{zoomScale}})`;
-  }}
+      'translate(' + offsetX + 'px,' + offsetY + 'px) scale(' + zoomScale + ')';
+  }
 
-  zoomInput.addEventListener('input', () => {{
-    zoomScale = parseFloat(zoomInput.value);
+  zoomInput.addEventListener('input', function(){
+    zoomScale = parseFloat(this.value);
     applyTransform();
-  }});
+  });
 
-  stage.addEventListener('mousedown', e => {{
+  stage.addEventListener('mousedown', function(e){
     dragging = true;
     startX = e.clientX - offsetX;
     startY = e.clientY - offsetY;
-  }});
+  });
 
-  window.addEventListener('mousemove', e => {{
-    if (!dragging) return;
+  window.addEventListener('mousemove', function(e){
+    if(!dragging) return;
     offsetX = e.clientX - startX;
     offsetY = e.clientY - startY;
     applyTransform();
-  }});
+  });
 
-  window.addEventListener('mouseup', () => {{
+  window.addEventListener('mouseup', function(){
     dragging = false;
-  }});
+  });
 
-  document.getElementById('fs').addEventListener('click', () => {{
-    if (!document.fullscreenElement) {{
+  document.getElementById('fs').addEventListener('click', function(){
+    if(!document.fullscreenElement){
       document.documentElement.requestFullscreen();
-    }} else {{
+    } else {
       document.exitFullscreen();
-    }}
-  }});
+    }
+  });
 
-  const observer = new MutationObserver(() => {{
-    const canvas = document.querySelector('canvas');
-    if (canvas && canvas.parentElement !== stage) {{
-      stage.appendChild(canvas);
+  const observer = new MutationObserver(function(){
+    const c = document.querySelector('canvas');
+    if(c && c.parentElement !== stage){
+      stage.appendChild(c);
       applyTransform();
-    }}
-  }});
+    }
+  });
 
-  observer.observe(document.body, {{
-    childList: true,
-    subtree: true
-  }});
+  observer.observe(document.body, { childList:true, subtree:true });
 })();
 </script>
-
 </body>
 </html>
 """
+    return html.replace("__P5_CODE__", code)
 
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
