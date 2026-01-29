@@ -233,7 +233,7 @@ def page_1():
             unsafe_allow_html=True
         )
 
-        btn_col_l, btn_col_c, btn_col_r = st.columns([1, 2, 1])
+        btn_col_l, btn_col_c, btn_col_r = st.columns([3, 2, 3])
         with btn_col_c:
             if st.button("접속하기", use_container_width=True):
                 if all(
