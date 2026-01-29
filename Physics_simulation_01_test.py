@@ -17,7 +17,7 @@ MODEL = "gemini-2.5-flash"
 
 # 시스템 프롬프트 설정
 SYSTEM_PROMPT = (
-    "당신은 물리학 시뮬레이션 생성 도우미 역할을 합니다."
+    "당신은 고등학생의 물리학 시뮬레이션 생성 도우미 역할을 합니다."
     "사용자 요청에 따라 p5.js에서 실행할 수 있는 자바스크립트 코드를 생성합니다."
     "[규칙]"
     "1. 코드에 주석은 하나도 넣지 마세요."
@@ -26,6 +26,7 @@ SYSTEM_PROMPT = (
     "+++++"
     "(p5.js 코드 내용)"
     "+++++"
+    "4. 코드를 제공하며 수정에 관한 아주 간략한 설명을 한 줄 이내로 짧게 제공하세요."
     "이 규칙은 모든 코드 응답에 대해 예외 없이 적용되어야 하며, 어떠한 예외도 두어선 안 됩니다."
 )
 
@@ -116,6 +117,7 @@ def render_p5(code):
 
     code_str = str(code).strip()
 
+    # ★ 변경: 확대/축소(Zoom) 기능 추가
     p5_html = f"""
     <!DOCTYPE html>
     <html>
@@ -125,19 +127,38 @@ def render_p5(code):
             body {{
                 margin: 0;
                 background: #f0f0f0;
-                overflow: hidden;
+            }}
+            #controls {{
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                z-index: 1000;
+                background: rgba(255,255,255,0.9);
+                padding: 6px;
+                border-radius: 6px;
+                font-size: 12px;
+            }}
+            #container {{
+                transform-origin: top left;
             }}
         </style>
     </head>
     <body>
-        <script>
-        {code_str}
-        </script>
+        <div id="controls">
+            Zoom
+            <input type="range" min="0.5" max="2" step="0.1" value="1"
+                   oninput="document.getElementById('container').style.transform = 'scale(' + this.value + ')';">
+        </div>
+        <div id="container">
+            <script>
+            {code_str}
+            </script>
+        </div>
     </body>
     </html>
     """
 
-    components.html(p5_html, height=500)
+    components.html(p5_html, height=650, scrolling=True)
 
 # 1페이지
 def page_1():
@@ -202,14 +223,23 @@ def page_2():
         messages = st.session_state.get("messages", [])
         all_code_snippets = []
 
+        code_counter = 0  # ★ 변경: 코드 버전 카운터
+
         for m in messages:
             with chat_container.chat_message(m["role"]):
+
+                def replace_code_block(match):
+                    nonlocal code_counter
+                    code_counter += 1
+                    return f"> 💡 **시뮬레이션 코드 [Code Version {code_counter}] 생성 완료**"
+
                 display_content = re.sub(
                     r"\+{5}.*?\+{5}",
-                    "> 💡 **시뮬레이션 코드가 생성되었습니다.**",
+                    replace_code_block,
                     m["content"],
                     flags=re.DOTALL,
                 )
+
                 st.markdown(display_content)
 
                 snippets = re.findall(r"\+{5}(.*?)\+{5}", m["content"], re.DOTALL)
