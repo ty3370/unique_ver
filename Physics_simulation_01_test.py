@@ -249,45 +249,78 @@ def page_2():
         with control_col:
             st.markdown("#### ✏️ 입력 & 실행")
 
-            user_input = st.text_area(
-                "시뮬레이션 설명",
-                placeholder="시뮬레이션 내용을 설명해 주세요...",
-                height=140,
-                key="prompt_area",
-            )
+            # 🔑 메시지 수 기반 key → 입력 초기화 & 연타 방지
+            msg_len = len(messages)
+            input_key = f"prompt_area_{msg_len}"
+            send_key = f"send_btn_{msg_len}"
 
-            if st.button("🤖 AI에게 요청", use_container_width=True, type="primary"):
-                if user_input.strip():
-                    messages.append({"role": "user", "content": user_input})
-                    model = genai.GenerativeModel(
-                        MODEL,
-                        system_instruction=SYSTEM_PROMPT
-                    )
+            placeholder = st.empty()
 
-                    history = []
-                    for m in messages[:-1]:
-                        role = "model" if m["role"] == "assistant" else "user"
-                        if not history or history[-1]["role"] != role:
-                            history.append({"role": role, "parts": [m["content"]]})
+            with placeholder.container():
+                user_input = st.text_area(
+                    "시뮬레이션 설명",
+                    placeholder="시뮬레이션 내용을 설명해 주세요...",
+                    height=140,
+                    key=input_key,
+                )
 
-                    try:
-                        response = model.generate_content(
-                            history + [{"role": "user", "parts": [user_input]}]
+                if st.button(
+                    "🤖 AI에게 요청",
+                    key=send_key,
+                    use_container_width=True,
+                    type="primary",
+                ):
+                    if user_input.strip():
+                        # ⛔ 입력창 & 버튼 즉시 제거 (연타 방지)
+                        placeholder.empty()
+
+                        messages.append(
+                            {"role": "user", "content": user_input}
                         )
-                        answer = response.text
-                        messages.append({"role": "assistant", "content": answer})
-                        save_chat(st.session_state["current_topic"], messages)
 
-                        new_snippets = re.findall(r"\+{5}(.*?)\+{5}", answer, re.DOTALL)
-                        if new_snippets:
-                            st.session_state["current_code"] = new_snippets[-1].strip()
+                        model = genai.GenerativeModel(
+                            MODEL,
+                            system_instruction=SYSTEM_PROMPT
+                        )
 
-                        st.rerun()
+                        history = []
+                        for m in messages[:-1]:
+                            role = "model" if m["role"] == "assistant" else "user"
+                            if not history or history[-1]["role"] != role:
+                                history.append(
+                                    {"role": role, "parts": [m["content"]]}
+                                )
 
-                    except Exception as e:
-                        st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
-                else:
-                    st.warning("시뮬레이션 설명을 입력해 주세요.")
+                        try:
+                            response = model.generate_content(
+                                history + [{"role": "user", "parts": [user_input]}]
+                            )
+                            answer = response.text
+                            messages.append(
+                                {"role": "assistant", "content": answer}
+                            )
+
+                            save_chat(
+                                st.session_state["current_topic"],
+                                messages
+                            )
+
+                            new_snippets = re.findall(
+                                r"\+{5}(.*?)\+{5}",
+                                answer,
+                                re.DOTALL
+                            )
+                            if new_snippets:
+                                st.session_state["current_code"] = (
+                                    new_snippets[-1].strip()
+                                )
+
+                            st.rerun()
+
+                        except Exception as e:
+                            st.error(f"답변 생성 중 오류가 발생했습니다: {e}")
+                    else:
+                        st.warning("시뮬레이션 설명을 입력해 주세요.")
 
             if all_code_snippets:
                 selected_ver = st.selectbox(
@@ -296,19 +329,33 @@ def page_2():
                     format_func=lambda x: f"Code Version {x+1}",
                 )
 
-                if st.button("▶️ 선택한 코드 실행", use_container_width=True):
-                    st.session_state["current_code"] = all_code_snippets[selected_ver]
+                if st.button(
+                    "▶️ 선택한 코드 실행",
+                    use_container_width=True
+                ):
+                    st.session_state["current_code"] = (
+                        all_code_snippets[selected_ver]
+                    )
                     st.rerun()
 
     with bottom:
         st.subheader("🖥️ Simulation Preview")
 
         if st.session_state.get("current_code"):
-            p5_html = render_p5(st.session_state["current_code"])
-            components.html(p5_html, height=650, scrolling=False)
+            p5_html = render_p5(
+                st.session_state["current_code"]
+            )
+            components.html(
+                p5_html,
+                height=650,
+                scrolling=False
+            )
 
             with st.expander("소스 코드 확인"):
-                st.code(st.session_state["current_code"], language="javascript")
+                st.code(
+                    st.session_state["current_code"],
+                    language="javascript"
+                )
         else:
             st.info("코드가 생성되면 이곳에 시뮬레이션이 나타납니다.")
 
