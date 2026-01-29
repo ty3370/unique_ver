@@ -196,16 +196,39 @@ def show_stage(message):
 def page_1():
     st.title("🚀 물리학 시뮬레이션 제작 AI")
     st.subheader("학습자 정보를 입력하세요")
-    st.session_state["user_number"] = st.text_input("학번", value=st.session_state.get("user_number", ""))
-    st.session_state["user_name"] = st.text_input("이름", value=st.session_state.get("user_name", ""))
-    st.session_state["user_code"] = st.text_input(
-        "식별코드",
-        value=st.session_state.get("user_code", ""),
-        help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요."
-    )
-    st.markdown(
-        "> 🌟 **“생각하건대 현재의 고난은 장차 우리에게 나타날 영광과 비교할 수 없도다”** — 로마서 8장 18절"
-    )
+
+    left, center, right = st.columns([1, 2, 1])
+
+    with center:
+        st.markdown(
+            """
+            <div style="max-width: 520px; margin: auto;">
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.session_state["user_number"] = st.text_input(
+            "학번",
+            value=st.session_state.get("user_number", "")
+        )
+        st.session_state["user_name"] = st.text_input(
+            "이름",
+            value=st.session_state.get("user_name", "")
+        )
+        st.session_state["user_code"] = st.text_input(
+            "식별코드",
+            value=st.session_state.get("user_code", ""),
+            help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요."
+        )
+
+        st.markdown(
+            """
+            > 🌟 **“생각하건대 현재의 고난은 장차 우리에게 나타날 영광과 비교할 수 없도다”** — 로마서 8장 18절
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
     if st.button("접속하기"):
         if all(
