@@ -512,12 +512,6 @@ def page_2():
 
             st.subheader("📝 시뮬레이션 일지")
 
-            message_box = st.empty()
-
-            if st.session_state.get("log_saved"):
-                message_box.success("✅ 저장되었습니다.")
-                del st.session_state["log_saved"]
-
             current_code = st.session_state.get("current_code", "").strip()
             ver_no = None
             if all_code_snippets:
@@ -558,7 +552,7 @@ def page_2():
 
                 if st.button("💾 저장"):
                     if not evaluation.strip() or not revision_plan.strip():
-                        message_box.error("⚠️ 평가와 수정 계획을 모두 작성해야 저장할 수 있습니다.")
+                        st.session_state["log_error"] = "⚠️ 평가와 수정 계획을 모두 작성해야 저장할 수 있습니다."
                     else:
                         content = (
                             f"[Code Version {ver_no} 평가]\n"
@@ -575,7 +569,17 @@ def page_2():
                         save_chat(st.session_state["current_topic"], messages)
 
                         st.session_state["log_saved"] = True
+                        st.session_state.pop("log_error", None)
                         st.rerun()
+
+                message_box = st.empty()
+
+                if st.session_state.get("log_saved"):
+                    message_box.success("✅ 저장되었습니다.")
+                    del st.session_state["log_saved"]
+
+                if st.session_state.get("log_error"):
+                    message_box.error(st.session_state["log_error"])
 
             st.markdown("---")
             with st.expander("소스 코드 확인"):
