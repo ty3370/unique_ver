@@ -482,18 +482,22 @@ def page_2():
                 unsafe_allow_html=True
             )
 
-            components.html("""
-            <script>
-            window.addEventListener("message", (event) => {
-              if (event.data?.type === "SYNC_P5_HEIGHT") {
-                const iframe = window.frameElement;
-                if (iframe) {
-                  iframe.style.height = event.data.height + "px";
-                }
-              }
-            });
-            </script>
-            """, height=0)
+            components.html(
+                """
+                <script>
+                window.addEventListener("message", (event) => {
+                  if (event.data?.type === "SYNC_P5_HEIGHT") {
+                    const iframes = parent.document.querySelectorAll("iframe");
+                    const target = iframes[iframes.length - 1];
+                    if (target) {
+                      target.style.height = event.data.height + "px";
+                    }
+                  }
+                });
+                </script>
+                """,
+                height=0
+            )
 
             p5_html = render_p5(
                 st.session_state["current_code"]
