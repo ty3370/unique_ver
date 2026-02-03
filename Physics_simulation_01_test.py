@@ -193,6 +193,35 @@ def show_stage(message):
     </style>
     """, unsafe_allow_html=True)
 
+def get_latest_logs_by_version(messages):
+    latest = {}
+    pattern = r"\[Code Version (\d+) 평가\]"
+    for m in messages:
+        if m.get("role") != "user":
+            continue
+        content = m.get("content", "")
+        match = re.search(pattern, content)
+        if match:
+            ver = int(match.group(1))
+            latest[ver] = content
+    return latest
+
+def parse_log_content(ver_no, content):
+    eval_text = ""
+    plan_text = ""
+    eval_pat = rf"\[Code Version {ver_no} 평가\]\s*(.*?)\s*\n\s*\n\s*\[Code Version {ver_no} 수정 계획\]"
+    plan_pat = rf"\[Code Version {ver_no} 수정 계획\]\s*(.*)$"
+
+    m1 = re.search(eval_pat, content, flags=re.DOTALL)
+    if m1:
+        eval_text = m1.group(1).strip()
+
+    m2 = re.search(plan_pat, content, flags=re.DOTALL)
+    if m2:
+        plan_text = m2.group(1).strip()
+
+    return eval_text, plan_text
+
 def page_1():
     st.markdown(
         """
@@ -324,9 +353,6 @@ def page_2():
             placeholder = st.empty()
             stage = st.empty()
 
-            # =========================
-            # 1️⃣ 입력 UI (로딩 아닐 때만)
-            # =========================
             if not st.session_state["loading"]:
                 with placeholder.container():
                     user_input = st.text_area(
@@ -446,6 +472,72 @@ def page_2():
                     st.session_state["current_code"],
                     language="javascript"
                 )
+
+            st.markdown("---")
+            st.subheader("📝 시뮬레이션 일지")
+
+            current_code = st.session_state.get("current_code", "").strip()
+            ver_no = None
+            if all_code_snippets:
+                try:
+                    ver_no = all_code_snippets.index(current_code) + 1
+                except ValueError:
+                    ver_no = None
+
+            if ver_no is None:
+                st.info("코드 버전을 확인할 수 없어 일지를 작성할 수 없습니다. (코드 버전 선택 후 실행해 주세요.)")
+            else:
+                latest_logs = get_latest_logs_by_version(messages)
+                latest_content = latest_logs.get(ver_no, "")
+
+                latest_eval, latest_plan = ("", "")
+                if latest_content:
+                    latest_eval, latest_plan = parse_log_content(ver_no, latest_content)
+
+                if st.session_state.get("log_current_ver_no") != ver_no:
+                    st.session_state["log_current_ver_no"] = ver_no
+                    st.session_state[f"log_eval_{ver_no}"] = latest_eval
+                    st.session_state[f"log_plan_{ver_no}"] = latest_plan
+
+                if latest_content:
+                    st.markdown("#### 📌 최근 저장된 내용(이 버전)")
+                    st.markdown(latest_content)
+
+                evaluation = st.text_area(
+                    "시뮬레이션 평가",
+                    height=120,
+                    key=f"log_eval_{ver_no}"
+                )
+                revision_plan = st.text_area(
+                    "시뮬레이션 수정 계획",
+                    height=120,
+                    key=f"log_plan_{ver_no}"
+                )
+
+                if st.button("💾 저장", use_container_width=True):
+                    if not evaluation.strip() or not revision_plan.strip():
+                        st.error("⚠️ 평가와 수정 계획을 모두 작성해야 저장할 수 있습니다.")
+                    else:
+                        content = (
+                            f"[Code Version {ver_no} 평가]\n"
+                            f"{evaluation.strip()}\n\n"
+                            f"[Code Version {ver_no} 수정 계획]\n"
+                            f"{revision_plan.strip()}"
+                        )
+
+                        messages.append({
+                            "role": "user",
+                            "content": content
+                        })
+
+                        save_chat(
+                            st.session_state["current_topic"],
+                            messages
+                        )
+
+                        st.success("✅ 저장되었습니다.")
+                        st.rerun()
+
         else:
             st.info("코드가 생성되면 이곳에 시뮬레이션이 나타납니다.")
 
