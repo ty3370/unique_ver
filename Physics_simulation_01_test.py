@@ -560,9 +560,9 @@ def page_2():
                         st.session_state["log_error"] = "⚠️ 평가와 수정 계획을 모두 작성해야 저장할 수 있습니다."
                     else:
                         content = (
-                            f"[Code Version {ver_no} 평가]\n"
+                            f"[Code Version {ver_no} 평가] "
                             f"{evaluation.strip()}\n\n"
-                            f"[Code Version {ver_no} 수정 계획]\n"
+                            f"[Code Version {ver_no} 수정 계획] "
                             f"{revision_plan.strip()}"
                         )
 
