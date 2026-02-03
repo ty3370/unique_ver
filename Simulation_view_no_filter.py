@@ -42,93 +42,18 @@ def connect_to_db():
         charset="utf8mb4"
     )
 
-def fetch_numbers():
+def fetch_all_records():
     db = connect_to_db()
     cur = db.cursor()
-    cur.execute(
-        """
-        SELECT DISTINCT number
+    cur.execute("""
+        SELECT number, name, code, topic, chat
         FROM qna_unique
-        ORDER BY number
-        """
-    )
+        ORDER BY number, name, code, topic
+    """)
     rows = cur.fetchall()
     cur.close()
     db.close()
-    return [r[0] for r in rows]
-
-def fetch_names(number):
-    db = connect_to_db()
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT DISTINCT name
-        FROM qna_unique
-        WHERE number=%s
-        ORDER BY name
-        """,
-        (number,)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    return [r[0] for r in rows]
-
-def fetch_codes(number, name):
-    db = connect_to_db()
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT DISTINCT code
-        FROM qna_unique
-        WHERE number=%s
-          AND name=%s
-        ORDER BY code
-        """,
-        (number, name)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    return [r[0] for r in rows]
-
-def fetch_topics(number, name, code):
-    db = connect_to_db()
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT DISTINCT topic
-        FROM qna_unique
-        WHERE number=%s
-          AND name=%s
-          AND code=%s
-        ORDER BY topic
-        """,
-        (number, name, code)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    return [r[0] for r in rows]
-
-def fetch_chat(number, name, code, topic):
-    db = connect_to_db()
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT chat
-        FROM qna_unique
-        WHERE number=%s
-          AND name=%s
-          AND code=%s
-          AND topic=%s
-        """,
-        (number, name, code, topic)
-    )
-    row = cur.fetchone()
-    cur.close()
-    db.close()
-    return row[0] if row else None
+    return rows
 
 def delete_chat(number, name, topic):
     db = connect_to_db()
@@ -147,30 +72,44 @@ password = st.text_input("관리자 비밀번호", type="password")
 if password != st.secrets["PASSWORD"]:
     st.stop()
 
-numbers = fetch_numbers()
+records = fetch_all_records()
+if not records:
+    st.warning("데이터가 없습니다.")
+    st.stop()
+
+df_all = pd.DataFrame(
+    records,
+    columns=["number", "name", "code", "topic", "chat"]
+)
+
+numbers = sorted(df_all["number"].unique().tolist())
 number = st.selectbox("학번", ["선택"] + numbers)
 if number == "선택":
     st.stop()
 
-names = fetch_names(number)
+df_n = df_all[df_all["number"] == number]
+
+names = sorted(df_n["name"].unique().tolist())
 name = st.selectbox("이름", ["선택"] + names)
 if name == "선택":
     st.stop()
 
-codes = fetch_codes(number, name)
+df_nn = df_n[df_n["name"] == name]
+
+codes = sorted(df_nn["code"].unique().tolist())
 code = st.selectbox("식별코드", ["선택"] + codes)
 if code == "선택":
     st.stop()
 
-topics = fetch_topics(number, name, code)
+df_nnc = df_nn[df_nn["code"] == code]
+
+topics = sorted(df_nnc["topic"].unique().tolist())
 topic = st.selectbox("토픽", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
-chat_raw = fetch_chat(number, name, code, topic)
-if not chat_raw:
-    st.warning("대화 없음")
-    st.stop()
+row = df_nnc[df_nnc["topic"] == topic].iloc[0]
+chat_raw = row["chat"]
 
 try:
     chat = json.loads(chat_raw)
@@ -188,25 +127,20 @@ for msg in chat:
     content = msg["content"]
 
     parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
-
     df_texts = []
 
     for part in parts:
         if part.startswith("+++++") and part.endswith("+++++"):
             code_counter += 1
             st.markdown(f"**💡 시뮬레이션 코드 [Code Version {code_counter}]**")
-            code_block = part[5:-5].strip()
-            st.code(code_block, language="javascript")
+            st.code(part[5:-5].strip(), language="javascript")
         else:
             text = clean_inline_latex(part)
             if text:
                 st.write(f"{role}: {text}")
                 df_texts.append(text)
 
-    label = ""
-    if "+++++" in content:
-        label = f"[Code Version {code_counter}] "
-
+    label = f"[Code Version {code_counter}] " if "+++++" in content else ""
     chat_table.append({
         "말한 사람": name if role == "학생" else "AI",
         "내용": label + " ".join(df_texts),
@@ -214,8 +148,8 @@ for msg in chat:
     })
 
 st.subheader("복사용 표")
-df = pd.DataFrame(chat_table)
-st.markdown(df.to_html(index=False), unsafe_allow_html=True)
+df_out = pd.DataFrame(chat_table)
+st.markdown(df_out.to_html(index=False), unsafe_allow_html=True)
 
 if "confirm_delete" not in st.session_state:
     st.session_state.confirm_delete = False
