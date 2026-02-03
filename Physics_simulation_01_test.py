@@ -30,7 +30,7 @@ SYSTEM_PROMPT = (
     "(p5.js 코드 내용)"
     "+++++"
     "4. 코드를 제공하며 수정에 관한 아주 간략한 설명을 한 줄 이내로 짧게 제공하세요."
-    "5. createCanvas()의 가로 크기는 window.innerWidth * 0.9 를 절대 초과하지 말고, 세로 크기는 window.innerHeight * 0.75 를 절대 초과하지 마세요. 캔버스 크기를 하드코딩된 숫자로 지정하지 말고, 반드시 위 최대 크기 범위 내에서만 캔버스를 생성하세요."
+    "5. createCanvas()는 반드시 createCanvas(window.innerWidth, window.innerHeight) 형태로만 사용하세요. 캔버스 크기를 하드코딩된 숫자나 배율로 지정하지 마세요."
     "이 규칙은 모든 코드 응답에 대해 예외 없이 적용되어야 하며, 어떠한 예외도 두어선 안 됩니다."
 )
 
