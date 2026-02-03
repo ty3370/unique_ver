@@ -121,10 +121,10 @@ def render_p5(code):
 html, body {
   margin: 0;
   padding: 0;
-  width: 90vw;
-  height: 75vh;
+  width: 100%;
+  height: 100%;
   background: transparent;
-  overflow: auto;
+  overflow: hidden;
 }
 #fs {
   position: fixed;
