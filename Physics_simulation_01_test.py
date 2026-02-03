@@ -539,9 +539,9 @@ def page_2():
                     st.session_state[f"log_eval_{ver_no}"] = latest_eval
                     st.session_state[f"log_plan_{ver_no}"] = latest_plan
 
-                if latest_content:
-                    st.markdown("#### 📌 최근 저장 내용")
-                    st.markdown(latest_content)
+#                if latest_content:
+#                    st.markdown("#### 📌 최근 저장 내용")
+#                    st.markdown(latest_content)
 
                 evaluation = st.text_area(
                     "시뮬레이션 평가",
