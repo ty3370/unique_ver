@@ -193,6 +193,7 @@ except Exception:
 st.subheader("대화 내용")
 
 chat_table = []
+code_counter = 0
 
 for msg in chat:
     role = "학생" if msg["role"] == "user" else "AI"
@@ -204,6 +205,8 @@ for msg in chat:
 
     for part in parts:
         if part.startswith("+++++") and part.endswith("+++++"):
+            code_counter += 1
+            st.markdown(f"**💡 시뮬레이션 코드 [Code Version {code_counter}]**")
             code_block = part[5:-5].strip()
             st.code(code_block, language="javascript")
         else:
@@ -212,9 +215,13 @@ for msg in chat:
                 st.write(f"{role}: {text}")
                 df_texts.append(text)
 
+    label = ""
+    if "+++++" in content:
+        label = f"[Code Version {code_counter}] "
+
     chat_table.append({
         "말한 사람": name if role == "학생" else "AI",
-        "내용": " ".join(df_texts),
+        "내용": label + " ".join(df_texts),
         "토픽": topic
     })
 
