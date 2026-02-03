@@ -520,6 +520,11 @@ def page_2():
                 except ValueError:
                     ver_no = None
 
+            if st.session_state.get("last_log_ver_no") != ver_no:
+                st.session_state["last_log_ver_no"] = ver_no
+                st.session_state.pop("log_saved", None)
+                st.session_state.pop("log_error", None)
+
             if ver_no is None:
                 st.info("코드 버전을 확인할 수 없어 일지를 작성할 수 없습니다. (코드 버전 선택 후 실행해 주세요.)")
             else:
