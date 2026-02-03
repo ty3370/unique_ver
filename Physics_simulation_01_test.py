@@ -510,7 +510,6 @@ def page_2():
                 scrolling=False
             )
 
-            st.markdown("---")
             st.subheader("📝 시뮬레이션 일지")
 
             current_code = st.session_state.get("current_code", "").strip()
@@ -571,6 +570,7 @@ def page_2():
                         st.success("✅ 저장되었습니다.")
                         st.rerun()
 
+            st.markdown("---")
             with st.expander("소스 코드 확인"):
                 st.code(
                     st.session_state["current_code"],
