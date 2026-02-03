@@ -512,6 +512,10 @@ def page_2():
 
             st.subheader("📝 시뮬레이션 일지")
 
+            if st.session_state.get("log_saved"):
+                st.success("✅ 저장되었습니다.")
+                del st.session_state["log_saved"]
+
             current_code = st.session_state.get("current_code", "").strip()
             ver_no = None
             if all_code_snippets:
@@ -536,7 +540,7 @@ def page_2():
                     st.session_state[f"log_plan_{ver_no}"] = latest_plan
 
                 if latest_content:
-                    st.markdown("#### 📌 최근 저장된 내용(이 버전)")
+                    st.markdown("#### 📌 최근 저장 내용")
                     st.markdown(latest_content)
 
                 evaluation = st.text_area(
@@ -567,7 +571,8 @@ def page_2():
                         })
 
                         save_chat(st.session_state["current_topic"], messages)
-                        st.success("✅ 저장되었습니다.")
+
+                        st.session_state["log_saved"] = True
                         st.rerun()
 
             st.markdown("---")
