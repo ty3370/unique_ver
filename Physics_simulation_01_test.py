@@ -467,12 +467,6 @@ def page_2():
                 scrolling=True
             )
 
-            with st.expander("소스 코드 확인"):
-                st.code(
-                    st.session_state["current_code"],
-                    language="javascript"
-                )
-
             st.markdown("---")
             st.subheader("📝 시뮬레이션 일지")
 
@@ -514,7 +508,7 @@ def page_2():
                     key=f"log_plan_{ver_no}"
                 )
 
-                if st.button("💾 저장", use_container_width=True):
+                if st.button("💾 저장"):
                     if not evaluation.strip() or not revision_plan.strip():
                         st.error("⚠️ 평가와 수정 계획을 모두 작성해야 저장할 수 있습니다.")
                     else:
@@ -530,13 +524,15 @@ def page_2():
                             "content": content
                         })
 
-                        save_chat(
-                            st.session_state["current_topic"],
-                            messages
-                        )
-
+                        save_chat(st.session_state["current_topic"], messages)
                         st.success("✅ 저장되었습니다.")
                         st.rerun()
+
+            with st.expander("소스 코드 확인"):
+                st.code(
+                    st.session_state["current_code"],
+                    language="javascript"
+                )
 
         else:
             st.info("코드가 생성되면 이곳에 시뮬레이션이 나타납니다.")
