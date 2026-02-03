@@ -121,6 +121,8 @@ def render_p5(code):
 html, body {
   margin: 0;
   padding: 0;
+  width: 90vw;
+  height: 75vh;
   background: transparent;
   overflow: auto;
 }
