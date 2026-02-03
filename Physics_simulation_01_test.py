@@ -156,11 +156,35 @@ __P5_CODE__
 </script>
 
 <script>
+function syncHeight() {
+  const canvas = document.querySelector("canvas");
+  const h = canvas ? canvas.offsetHeight : document.body.scrollHeight;
+  window.parent.postMessage(
+    { type: "SYNC_P5_HEIGHT", height: h },
+    "*"
+  );
+}
+
+window.addEventListener("load", function () {
+  syncHeight();
+  setTimeout(syncHeight, 50);
+  setTimeout(syncHeight, 200);
+});
+
+window.addEventListener("resize", function () {
+  syncHeight();
+  setTimeout(syncHeight, 50);
+});
+
 document.getElementById("fs").onclick = function () {
   if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen();
+    setTimeout(syncHeight, 50);
+    setTimeout(syncHeight, 200);
   } else {
     document.exitFullscreen();
+    setTimeout(syncHeight, 50);
+    setTimeout(syncHeight, 200);
   }
 };
 </script>
@@ -458,13 +482,26 @@ def page_2():
                 unsafe_allow_html=True
             )
 
+            components.html("""
+            <script>
+            window.addEventListener("message", (event) => {
+              if (event.data?.type === "SYNC_P5_HEIGHT") {
+                const iframe = window.frameElement;
+                if (iframe) {
+                  iframe.style.height = event.data.height + "px";
+                }
+              }
+            });
+            </script>
+            """, height=0)
+
             p5_html = render_p5(
                 st.session_state["current_code"]
             )
             components.html(
                 p5_html,
                 height=650,
-                scrolling=True
+                scrolling=False
             )
 
             st.markdown("---")
