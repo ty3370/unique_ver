@@ -111,6 +111,7 @@ for _, row in df_topic.iterrows():
 
         label = f"[Code Version {code_counter}] " if "+++++" in content else ""
         chat_table.append({
+            "_time": msg.get("time", ""),
             "발언자 이름": name if role == "학생" else "AI",
             "프롬프트 번호": int(prompt_no),
             "프롬프트 내용": prompt_text,
@@ -120,6 +121,7 @@ for _, row in df_topic.iterrows():
 
 st.subheader("복사용 표")
 df_out = pd.DataFrame(chat_table)
+df_out = df_out.sort_values("_time").drop(columns=["_time"]).reset_index(drop=True)
 st.markdown(df_out.to_html(index=False), unsafe_allow_html=True)
 
 if "confirm_delete" not in st.session_state:
