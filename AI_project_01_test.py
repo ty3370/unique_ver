@@ -204,20 +204,21 @@ def page_main():
         mode = st.radio("모드", ["기존 프로젝트", "새 프로젝트"])
 
         if mode == "기존 프로젝트" and topics:
-            topic = st.selectbox("프로젝트 선택", topics)
+            selected_topic = st.selectbox("프로젝트 선택", topics)
         else:
-            topic = st.text_input("새 프로젝트 이름")
+            selected_topic = st.text_input("새 프로젝트 이름")
 
         if st.button("프로젝트 열기"):
-            st.session_state["topic"] = topic
-            st.session_state.pop("prompt_no", None)
-            st.rerun()
+            if selected_topic:
+                st.session_state["topic"] = selected_topic
+                st.session_state.pop("prompt_no", None)
+                st.rerun()
 
     if "topic" not in st.session_state:
         st.info("프로젝트를 선택하세요.")
         return
 
-    st.header(f"📘 Topic: {st.session_state['topic']}")
+    st.header(f"📘 Project: {st.session_state['topic']}")
 
     st.subheader("⚙️ 시스템 프롬프트")
 
