@@ -245,7 +245,12 @@ def page_main():
         for no, text in versions
     }
 
-    selected = st.selectbox("프롬프트 버전 선택", list(prompt_map.keys()))
+    keys = list(prompt_map.keys())
+    selected = st.selectbox(
+        "프롬프트 버전 선택",
+        keys,
+        index=len(keys) - 1
+    )
     prompt_no, system_prompt = prompt_map[selected]
     st.session_state["prompt_no"] = prompt_no
 
