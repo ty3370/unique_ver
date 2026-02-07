@@ -32,9 +32,9 @@ def get_topics():
             WHERE number=%s AND name=%s AND code=%s
             """,
             (
-                st.session_state["number"],
-                st.session_state["name"],
-                st.session_state["code"]
+                st.session_state.get("number", ""),
+                st.session_state.get("name", ""),
+                st.session_state.get("code", "")
             )
         )
         rows = cur.fetchall()
