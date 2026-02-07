@@ -228,7 +228,7 @@ def page_main():
         height=120
     )
 
-    if st.button("➕ 새 프롬프트 저장"):
+    if st.button("✅ 새 프롬프트 저장"):
         if new_prompt.strip():
             save_new_prompt(st.session_state["topic"], new_prompt)
             st.success("저장 완료")
