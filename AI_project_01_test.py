@@ -143,7 +143,7 @@ def page_login():
     st.markdown(
         """
         <h1 style="text-align: center;">🤖 세상을 위한 AI 프로젝트</h1>
-        <h3 style="text-align: center;">학습자 정보를 입력하세요</h3>
+        <h4 style="text-align: center;">학습자 정보를 입력하세요</h4>
         """,
         unsafe_allow_html=True
     )
