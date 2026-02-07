@@ -93,6 +93,8 @@ for _, row in df_topic.iterrows():
     except Exception:
         continue
 
+    chat = sorted(chat, key=lambda x: x.get("time", ""))
+
     for msg in chat:
         role = "학생" if msg["role"] == "user" else "AI"
         content = msg["content"]

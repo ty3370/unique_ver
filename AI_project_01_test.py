@@ -268,7 +268,11 @@ def page_main():
     user_input = st.chat_input("메시지를 입력하세요")
 
     if user_input:
-        chat.append({"role": "user", "content": user_input})
+        chat.append({
+            "role": "user",
+            "content": user_input,
+            "time": datetime.now().isoformat()
+        })
 
         response = client.chat.completions.create(
             model=MODEL,
@@ -279,7 +283,11 @@ def page_main():
         )
 
         answer = response.choices[0].message.content
-        chat.append({"role": "assistant", "content": answer})
+        chat.append({
+            "role": "assistant",
+            "content": answer,
+            "time": datetime.now().isoformat()
+        })
         save_chat(st.session_state["topic"], prompt_no, chat)
         st.rerun()
 
