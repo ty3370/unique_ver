@@ -75,7 +75,7 @@ if code == "선택":
 df_nnc = df_nn[df_nn["code"] == code]
 
 topics = sorted(df_nnc["topic"].unique().tolist())
-topic = st.selectbox("토픽", ["선택"] + topics)
+topic = st.selectbox("프로젝트", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
@@ -131,7 +131,7 @@ if not st.session_state.confirm_delete:
         st.rerun()
 else:
     st.warning("정말 삭제하시겠습니까?")
-    if area.button("삭제 확정"):
+    if area.button("❌삭제 확정"):
         delete_chat(number, name, code, topic, prompt_no)
         st.session_state.confirm_delete = False
         st.success("삭제 완료")
