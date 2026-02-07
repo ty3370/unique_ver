@@ -140,21 +140,62 @@ def save_chat(topic, prompt_no, chat):
     db.close()
 
 def page_login():
-    st.title("🤖 세상을 위한 AI 프로젝트")
-    st.session_state["number"] = st.text_input("학번")
-    st.session_state["name"] = st.text_input("이름")
-    st.session_state["code"] = st.text_input("식별 코드")
+    st.markdown(
+        """
+        <h1 style="text-align: center;">🤖 세상을 위한 AI 프로젝트</h1>
+        <h3 style="text-align: center;">학습자 정보를 입력하세요</h3>
+        """,
+        unsafe_allow_html=True
+    )
 
-    if st.button("접속"):
-        if all([
-            st.session_state["number"],
-            st.session_state["name"],
-            st.session_state["code"]
-        ]):
-            st.session_state["step"] = 2
-            st.rerun()
-        else:
-            st.warning("모든 정보를 입력하세요.")
+    left, center, right = st.columns([1, 2, 1])
+
+    with center:
+        st.markdown(
+            """
+            <div style="max-width: 520px; margin: auto;">
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.session_state["number"] = st.text_input(
+            "학번",
+            value=st.session_state.get("number", "")
+        )
+
+        st.session_state["name"] = st.text_input(
+            "이름",
+            value=st.session_state.get("name", "")
+        )
+
+        st.session_state["code"] = st.text_input(
+            "식별코드",
+            value=st.session_state.get("code", ""),
+            help="타인의 학번과 이름으로 접속하는 것을 방지하기 위해 자신만 기억할 수 있는 코드를 입력하세요."
+        )
+
+        st.markdown(
+            """
+            > 🌟 **“생각하건대 현재의 고난은 장차 우리에게 나타날 영광과 비교할 수 없도다”** — 로마서 8장 18절
+            """,
+            unsafe_allow_html=True
+        )
+
+        btn_col_l, btn_col_c, btn_col_r = st.columns([1, 2, 1])
+
+        with btn_col_c:
+            if st.button("접속하기", use_container_width=True):
+                if all([
+                    st.session_state["number"],
+                    st.session_state["name"],
+                    st.session_state["code"]
+                ]):
+                    st.session_state["step"] = 2
+                    st.rerun()
+                else:
+                    st.error("모든 정보를 입력해주세요.")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 def page_main():
     with st.sidebar:
