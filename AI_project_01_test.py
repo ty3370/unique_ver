@@ -143,7 +143,7 @@ def page_login():
     st.markdown(
         """
         <h1 style="text-align: center;">🤖 세상을 위한 AI 프로젝트</h1>
-        <h4 style="text-align: center;">학습자 정보를 입력하세요</h4>
+        <h5 style="text-align: center;">학습자 정보를 입력하세요</h5>
         """,
         unsafe_allow_html=True
     )
@@ -201,20 +201,20 @@ def page_main():
     with st.sidebar:
         st.header("📂 프로젝트")
         topics = get_topics()
-        mode = st.radio("모드", ["기존 토픽", "새 토픽"])
+        mode = st.radio("모드", ["기존 프로젝트", "새 프로젝트"])
 
-        if mode == "기존 토픽" and topics:
-            topic = st.selectbox("토픽 선택", topics)
+        if mode == "기존 프로젝트" and topics:
+            topic = st.selectbox("프로젝트 선택", topics)
         else:
-            topic = st.text_input("새 토픽 이름")
+            topic = st.text_input("새 프로젝트 이름")
 
-        if st.button("토픽 열기"):
+        if st.button("프로젝트 열기"):
             st.session_state["topic"] = topic
             st.session_state.pop("prompt_no", None)
             st.rerun()
 
     if "topic" not in st.session_state:
-        st.info("토픽을 선택하세요.")
+        st.info("프로젝트를 선택하세요.")
         return
 
     st.header(f"📘 Topic: {st.session_state['topic']}")
