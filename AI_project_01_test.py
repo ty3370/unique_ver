@@ -197,26 +197,23 @@ def page_login():
 
         st.markdown("</div>", unsafe_allow_html=True)
 
-def page_main():
     with st.sidebar:
-        st.header("📂 프로젝트")
-        topics = get_topics()
-        mode = st.radio("모드", ["기존 프로젝트", "새 프로젝트"])
+        st.header("📂 프로젝트 관리")
+        existing_topics = get_topics()
+        mode = st.radio("작업 선택", ["기존 프로젝트 불러오기", "새 프로젝트 만들기"])
 
-        if mode == "기존 프로젝트" and topics:
-            selected_topic = st.selectbox("프로젝트 선택", topics)
+        if mode == "기존 프로젝트 불러오기" and existing_topics:
+            current_topic = st.selectbox("프로젝트 선택", existing_topics)
         else:
-            selected_topic = st.text_input("새 프로젝트 이름")
+            current_topic = st.text_input("새 프로젝트 제목 입력")
 
-        if st.button("프로젝트 열기"):
-            if selected_topic:
-                st.session_state["topic"] = selected_topic
+        if st.button("프로젝트 시작/변경"):
+            if current_topic:
+                st.session_state["topic"] = current_topic
                 st.session_state.pop("prompt_no", None)
                 st.rerun()
-
-    if "topic" not in st.session_state:
-        st.info("프로젝트를 선택하세요.")
-        return
+            else:
+                st.warning("제목을 입력하거나 선택하세요.")
 
     st.header(f"📘 Project: {st.session_state['topic']}")
 
