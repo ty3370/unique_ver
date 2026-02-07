@@ -81,47 +81,40 @@ if topic == "선택":
 
 df_topic = df_nnc[df_nnc["topic"] == topic]
 
-prompt_nos = sorted(df_topic["prompt_no"].unique().tolist())
-prompt_no = st.selectbox("프롬프트 번호", ["선택"] + prompt_nos)
-if prompt_no == "선택":
-    st.stop()
-
-row = df_topic[df_topic["prompt_no"] == prompt_no].iloc[0]
-chat_raw = row["chat"]
-prompt_text = row["prompt"]
-
-try:
-    chat = json.loads(chat_raw)
-except Exception:
-    st.error("대화 데이터 오류")
-    st.stop()
-
 chat_table = []
 code_counter = 0
 
-for msg in chat:
-    role = "학생" if msg["role"] == "user" else "AI"
-    content = msg["content"]
+for _, row in df_topic.iterrows():
+    prompt_no = row["prompt_no"]
+    prompt_text = row["prompt"]
 
-    parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
-    df_texts = []
+    try:
+        chat = json.loads(row["chat"])
+    except Exception:
+        continue
 
-    for part in parts:
-        if part.startswith("+++++") and part.endswith("+++++"):
-            code_counter += 1
+    for msg in chat:
+        role = "학생" if msg["role"] == "user" else "AI"
+        content = msg["content"]
 
-        else:
-            if part.strip():
-                df_texts.append(part.strip())
+        parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
+        df_texts = []
 
-    label = f"[Code Version {code_counter}] " if "+++++" in content else ""
-    chat_table.append({
-        "발언자 이름": name if role == "학생" else "AI",
-        "프롬프트 번호": int(prompt_no),
-        "프롬프트 내용": prompt_text,
-        "대화 내용": label + " ".join(df_texts),
-        "프로젝트 이름": topic
-    })
+        for part in parts:
+            if part.startswith("+++++") and part.endswith("+++++"):
+                code_counter += 1
+            else:
+                if part.strip():
+                    df_texts.append(part.strip())
+
+        label = f"[Code Version {code_counter}] " if "+++++" in content else ""
+        chat_table.append({
+            "발언자 이름": name if role == "학생" else "AI",
+            "프롬프트 번호": int(prompt_no),
+            "프롬프트 내용": prompt_text,
+            "대화 내용": label + " ".join(df_texts),
+            "프로젝트 이름": topic
+        })
 
 st.subheader("복사용 표")
 df_out = pd.DataFrame(chat_table)
