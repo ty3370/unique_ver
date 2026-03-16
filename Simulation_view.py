@@ -49,59 +49,22 @@ def connect_to_db():
         charset="utf8mb4"
     )
 
-def fetch_numbers():
+def fetch_students():
     db = connect_to_db()
     cur = db.cursor()
     cur.execute(
         """
-        SELECT DISTINCT number
+        SELECT DISTINCT number, name, code
         FROM qna_unique
         WHERE topic NOT IN %s
-        ORDER BY number
+        ORDER BY number, name, code
         """,
         (EXCLUDED_TOPICS,)
     )
     rows = cur.fetchall()
     cur.close()
     db.close()
-    return [r[0] for r in rows]
-
-def fetch_names(number):
-    db = connect_to_db()
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT DISTINCT name
-        FROM qna_unique
-        WHERE number=%s
-          AND topic NOT IN %s
-        ORDER BY name
-        """,
-        (number, EXCLUDED_TOPICS)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    return [r[0] for r in rows]
-
-def fetch_codes(number, name):
-    db = connect_to_db()
-    cur = db.cursor()
-    cur.execute(
-        """
-        SELECT DISTINCT code
-        FROM qna_unique
-        WHERE number=%s
-          AND name=%s
-          AND topic NOT IN %s
-        ORDER BY code
-        """,
-        (number, name, EXCLUDED_TOPICS)
-    )
-    rows = cur.fetchall()
-    cur.close()
-    db.close()
-    return [r[0] for r in rows]
+    return rows
 
 def fetch_topics(number, name, code):
     db = connect_to_db()
@@ -159,20 +122,18 @@ password = st.text_input("관리자 비밀번호", type="password")
 if password != st.secrets["PASSWORD"]:
     st.stop()
 
-numbers = fetch_numbers()
-number = st.selectbox("학번", ["선택"] + numbers)
-if number == "선택":
+students = fetch_students()
+
+student_options = ["선택"] + [
+    f"{n} | {name} | {code}" for n, name, code in students
+]
+
+selected = st.selectbox("학생 정보", student_options)
+
+if selected == "선택":
     st.stop()
 
-names = fetch_names(number)
-name = st.selectbox("이름", ["선택"] + names)
-if name == "선택":
-    st.stop()
-
-codes = fetch_codes(number, name)
-code = st.selectbox("식별코드", ["선택"] + codes)
-if code == "선택":
-    st.stop()
+number, name, code = selected.split(" | ")
 
 topics = fetch_topics(number, name, code)
 topic = st.selectbox("토픽", ["선택"] + topics)
@@ -190,40 +151,41 @@ except Exception:
     st.error("대화 데이터 오류")
     st.stop()
 
-st.subheader("대화 내용")
+with st.expander("대화 내용 보기", expanded=False):
+    st.subheader("대화 내용")
 
-chat_table = []
-code_counter = 0
+    chat_table = []
+    code_counter = 0
 
-for msg in chat:
-    role = "학생" if msg["role"] == "user" else "AI"
-    content = msg["content"]
+    for msg in chat:
+        role = "학생" if msg["role"] == "user" else "AI"
+        content = msg["content"]
 
-    parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
+        parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
 
-    df_texts = []
+        df_texts = []
 
-    for part in parts:
-        if part.startswith("+++++") and part.endswith("+++++"):
-            code_counter += 1
-            st.markdown(f"**💡 시뮬레이션 코드 [Code Version {code_counter}]**")
-            code_block = part[5:-5].strip()
-            st.code(code_block, language="javascript")
-        else:
-            text = clean_inline_latex(part)
-            if text:
-                st.write(f"{role}: {text}")
-                df_texts.append(text)
+        for part in parts:
+            if part.startswith("+++++") and part.endswith("+++++"):
+                code_counter += 1
+                st.markdown(f"**💡 시뮬레이션 코드 [Code Version {code_counter}]**")
+                code_block = part[5:-5].strip()
+                st.code(code_block, language="javascript")
+            else:
+                text = clean_inline_latex(part)
+                if text:
+                    st.write(f"{role}: {text}")
+                    df_texts.append(text)
 
-    label = ""
-    if "+++++" in content:
-        label = f"[Code Version {code_counter}] "
+        label = ""
+        if "+++++" in content:
+            label = f"[Code Version {code_counter}] "
 
-    chat_table.append({
-        "말한 사람": name if role == "학생" else "AI",
-        "내용": label + " ".join(df_texts),
-        "토픽": topic
-    })
+        chat_table.append({
+            "말한 사람": name if role == "학생" else "AI",
+            "내용": label + " ".join(df_texts),
+            "토픽": topic
+        })
 
 st.subheader("복사용 표")
 df = pd.DataFrame(chat_table)
