@@ -82,33 +82,29 @@ df_all = pd.DataFrame(
     columns=["number", "name", "code", "topic", "chat"]
 )
 
-numbers = sorted(df_all["number"].unique().tolist())
-number = st.selectbox("학번", ["선택"] + numbers)
-if number == "선택":
+students = df_all[["number", "name", "code"]].drop_duplicates()
+student_options = ["선택"] + [
+    f"{row['number']} | {row['name']} | {row['code']}" for _, row in students.iterrows()
+]
+
+selected_student = st.selectbox("학생 정보", student_options)
+if selected_student == "선택":
     st.stop()
 
-df_n = df_all[df_all["number"] == number]
+number, name, code = selected_student.split(" | ")
 
-names = sorted(df_n["name"].unique().tolist())
-name = st.selectbox("이름", ["선택"] + names)
-if name == "선택":
-    st.stop()
+df_student = df_all[
+    (df_all["number"] == number) & 
+    (df_all["name"] == name) & 
+    (df_all["code"] == code)
+]
 
-df_nn = df_n[df_n["name"] == name]
-
-codes = sorted(df_nn["code"].unique().tolist())
-code = st.selectbox("식별코드", ["선택"] + codes)
-if code == "선택":
-    st.stop()
-
-df_nnc = df_nn[df_nn["code"] == code]
-
-topics = sorted(df_nnc["topic"].unique().tolist())
+topics = sorted(df_student["topic"].unique().tolist())
 topic = st.selectbox("토픽", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
-row = df_nnc[df_nnc["topic"] == topic].iloc[0]
+row = df_student[df_student["topic"] == topic].iloc[0]
 chat_raw = row["chat"]
 
 try:
@@ -117,35 +113,32 @@ except Exception:
     st.error("대화 데이터 오류")
     st.stop()
 
-st.subheader("대화 내용")
-
 chat_table = []
 code_counter = 0
 
-for msg in chat:
-    role = "학생" if msg["role"] == "user" else "AI"
-    content = msg["content"]
-
-    parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
-    df_texts = []
-
-    for part in parts:
-        if part.startswith("+++++") and part.endswith("+++++"):
-            code_counter += 1
-            st.markdown(f"**💡 시뮬레이션 코드 [Code Version {code_counter}]**")
-            st.code(part[5:-5].strip(), language="javascript")
-        else:
-            text = clean_inline_latex(part)
-            if text:
-                st.write(f"{role}: {text}")
-                df_texts.append(text)
-
-    label = f"[Code Version {code_counter}] " if "+++++" in content else ""
-    chat_table.append({
-        "말한 사람": name if role == "학생" else "AI",
-        "내용": label + " ".join(df_texts),
-        "토픽": topic
-    })
+with st.expander("대화 내용 보기", expanded=False):
+    st.subheader("대화 내용")
+    for msg in chat:
+        role = "학생" if msg["role"] == "user" else "AI"
+        content = msg["content"]
+        parts = re.split(r"(\+{5}.*?\+{5})", content, flags=re.DOTALL)
+        df_texts = []
+        for part in parts:
+            if part.startswith("+++++") and part.endswith("+++++"):
+                code_counter += 1
+                st.markdown(f"**💡 시뮬레이션 코드 [Code Version {code_counter}]**")
+                st.code(part[5:-5].strip(), language="javascript")
+            else:
+                text = clean_inline_latex(part)
+                if text:
+                    st.write(f"{role}: {text}")
+                    df_texts.append(text)
+        label = f"[Code Version {code_counter}] " if "+++++" in content else ""
+        chat_table.append({
+            "말한 사람": name if role == "학생" else "AI",
+            "내용": label + " ".join(df_texts),
+            "토픽": topic
+        })
 
 st.subheader("복사용 표")
 df_out = pd.DataFrame(chat_table)
