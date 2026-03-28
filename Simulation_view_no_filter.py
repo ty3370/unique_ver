@@ -16,21 +16,13 @@ def clean_inline_latex(text):
     text = re.sub(r"\^([0-9])", r"^\1", text)
     text = re.sub(r"_([0-9])", r"\1", text)
     text = re.sub(r"\\", "", text)
-
     replacements = {
-        r"\\perp": "⟂",
-        r"\\angle": "∠",
-        r"\\parallel": "∥",
-        r"\\infty": "∞",
-        r"\\approx": "≈",
-        r"\\neq": "≠",
-        r"\\leq": "≤",
-        r"\\geq": "≥",
-        r"\\pm": "±",
+        r"\\perp": "⟂", r"\\angle": "∠", r"\\parallel": "∥",
+        r"\\infty": "∞", r"\\approx": "≈", r"\\neq": "≠",
+        r"\\leq": "≤", r"\\geq": "≥", r"\\pm": "±",
     }
     for p, s in replacements.items():
         text = re.sub(p, s, text)
-
     return text.strip()
 
 def connect_to_db():
@@ -42,18 +34,38 @@ def connect_to_db():
         charset="utf8mb4"
     )
 
-def fetch_all_records():
+def fetch_students():
     db = connect_to_db()
     cur = db.cursor()
-    cur.execute("""
-        SELECT number, name, code, topic, chat
-        FROM qna_unique
-        ORDER BY number, name, code, topic
-    """)
+    cur.execute("SELECT DISTINCT number, name, code FROM qna_unique ORDER BY number, name, code")
     rows = cur.fetchall()
     cur.close()
     db.close()
     return rows
+
+def fetch_topics(number, name, code):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT DISTINCT topic FROM qna_unique WHERE number=%s AND name=%s AND code=%s ORDER BY topic",
+        (number, name, code)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    db.close()
+    return [r[0] for r in rows]
+
+def fetch_chat(number, name, code, topic):
+    db = connect_to_db()
+    cur = db.cursor()
+    cur.execute(
+        "SELECT chat FROM qna_unique WHERE number=%s AND name=%s AND code=%s AND topic=%s",
+        (number, name, code, topic)
+    )
+    row = cur.fetchone()
+    cur.close()
+    db.close()
+    return row[0] if row else None
 
 def delete_chat(number, name, topic):
     db = connect_to_db()
@@ -72,40 +84,26 @@ password = st.text_input("관리자 비밀번호", type="password")
 if password != st.secrets["PASSWORD"]:
     st.stop()
 
-records = fetch_all_records()
-if not records:
+students = fetch_students()
+if not students:
     st.warning("데이터가 없습니다.")
     st.stop()
 
-df_all = pd.DataFrame(
-    records,
-    columns=["number", "name", "code", "topic", "chat"]
-)
-
-students = df_all[["number", "name", "code"]].drop_duplicates()
-student_options = ["선택"] + [
-    f"{row['number']} | {row['name']} | {row['code']}" for _, row in students.iterrows()
-]
-
-selected_student = st.selectbox("학생 정보", student_options)
-if selected_student == "선택":
+student_options = ["선택"] + [f"{n} | {name} | {code}" for n, name, code in students]
+selected = st.selectbox("학생 정보", student_options)
+if selected == "선택":
     st.stop()
 
-number, name, code = selected_student.split(" | ")
-
-df_student = df_all[
-    (df_all["number"] == number) & 
-    (df_all["name"] == name) & 
-    (df_all["code"] == code)
-]
-
-topics = sorted(df_student["topic"].unique().tolist())
+number, name, code = selected.split(" | ")
+topics = fetch_topics(number, name, code)
 topic = st.selectbox("토픽", ["선택"] + topics)
 if topic == "선택":
     st.stop()
 
-row = df_student[df_student["topic"] == topic].iloc[0]
-chat_raw = row["chat"]
+chat_raw = fetch_chat(number, name, code, topic)
+if not chat_raw:
+    st.warning("대화 없음")
+    st.stop()
 
 try:
     chat = json.loads(chat_raw)
@@ -148,7 +146,6 @@ if "confirm_delete" not in st.session_state:
     st.session_state.confirm_delete = False
 
 area = st.empty()
-
 if not st.session_state.confirm_delete:
     if area.button("삭제"):
         st.session_state.confirm_delete = True
