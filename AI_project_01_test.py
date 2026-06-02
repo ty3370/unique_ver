@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-MODEL = "gpt-4o"
+MODEL = "gpt-4.1-nano"
 
 def connect_db():
     return pymysql.connect(

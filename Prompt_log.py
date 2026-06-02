@@ -53,26 +53,18 @@ df_all = pd.DataFrame(
     columns=["number", "name", "code", "topic", "prompt_no", "prompt", "chat"]
 )
 
-numbers = sorted(df_all["number"].unique().tolist())
-number = st.selectbox("학번", ["선택"] + numbers)
-if number == "선택":
+df_students = df_all[["number", "name", "code"]].drop_duplicates().sort_values(by=["number", "name", "code"])
+student_options = [f"{row['number']} - {row['name']} ({row['code']})" for _, row in df_students.iterrows()]
+student_choice = st.selectbox("학생 선택 (학번 - 이름 - 식별코드)", ["선택"] + student_options)
+if student_choice == "선택":
     st.stop()
 
-df_n = df_all[df_all["number"] == number]
+selected_row = df_students.iloc[student_options.index(student_choice)]
+number = selected_row["number"]
+name = selected_row["name"]
+code = selected_row["code"]
 
-names = sorted(df_n["name"].unique().tolist())
-name = st.selectbox("이름", ["선택"] + names)
-if name == "선택":
-    st.stop()
-
-df_nn = df_n[df_n["name"] == name]
-
-codes = sorted(df_nn["code"].unique().tolist())
-code = st.selectbox("식별코드", ["선택"] + codes)
-if code == "선택":
-    st.stop()
-
-df_nnc = df_nn[df_nn["code"] == code]
+df_nnc = df_all[(df_all["number"] == number) & (df_all["name"] == name) & (df_all["code"] == code)]
 
 topics = sorted(df_nnc["topic"].unique().tolist())
 topic = st.selectbox("프로젝트", ["선택"] + topics)
